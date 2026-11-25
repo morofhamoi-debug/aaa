@@ -12,19 +12,21 @@ jobs:
       - name: Expand source archive into project files
         shell: bash
         run: |
-          if [ ! -d .bootstrap ]; then
-            echo "Source archive already expanded."
-          else
+          if [ -d .bootstrap ]; then
             cat .bootstrap/part-* > .bootstrap.tar.gz
             tar -tzf .bootstrap.tar.gz >/dev/null
             tar -xzf .bootstrap.tar.gz -C .
             rm -rf .bootstrap .bootstrap.tar.gz
-            rm -f .github/workflows/bootstrap.yml
+            # The current GitHub App token cannot add or update workflow files.
+            # Keep this bootstrap workflow unchanged and omit the Pages workflow.
+            rm -f .github/workflows/pages.yml BOOTSTRAP_TRIGGER.md
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
             git commit -m "Expand TACTICAL STRIKE project sources"
             git push
+          else
+            echo "Source archive already expanded."
           fi
       - uses: actions/setup-node@v4
         with:
