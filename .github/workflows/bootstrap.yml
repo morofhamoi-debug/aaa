@@ -1,0 +1,37 @@
+name: Bootstrap TACTICAL STRIKE
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  expand-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Expand source archive into project files
+        shell: bash
+        run: |
+          if [ ! -d .bootstrap ]; then
+            echo "Source archive already expanded."
+          else
+            cat .bootstrap/part-* > .bootstrap.tar.gz
+            tar -tzf .bootstrap.tar.gz >/dev/null
+            tar -xzf .bootstrap.tar.gz -C .
+            rm -rf .bootstrap .bootstrap.tar.gz
+            rm -f .github/workflows/bootstrap.yml
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Expand TACTICAL STRIKE project sources"
+            git push
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run source checks and unit tests
+        run: npm run check
+      - name: Build production bundle
+        run: npm run build
