@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#090d12" />
+    <meta name="description" content="TACTICAL STRIKE — browser tactical FPS prototype." />
+    <title>TACTICAL STRIKE</title>
+  </head>
+  <body>
+    <div id="app">
+      <main id="game-shell" aria-label="TACTICAL STRIKE game">
+        <canvas id="game-canvas"></canvas>
+        <div id="vignette" aria-hidden="true"></div>
+        <section id="main-menu" class="screen-panel">
+          <div class="brand-kicker"><span class="brand-dot"></span> TACTICAL SYSTEMS // TRAINING BUILD 0.1</div>
+          <div class="hero-title">TACTICAL<span>STRIKE</span></div>
+          <p class="hero-copy">PRECISION IS A HABIT. CONTROL THE SPACE. OWN THE ROUND.</p>
+          <div class="menu-divider"></div>
+          <div class="menu-actions">
+            <button id="start-button" class="primary-button"><span>НАЧАТЬ ТРЕНИРОВКУ</span><b>↗</b></button>
+            <div class="menu-meta"><span>РЕЖИМ</span><strong>WEAPON RANGE</strong><span>СБОРКА</span><strong>EARLY ACCESS</strong></div>
+          </div>
+          <div class="menu-foot"><span>WASD / MOUSE</span><span>ESC — PAUSE</span><span>BUILD 001</span></div>
+        </section>
+        <section id="pause-menu" class="screen-panel hidden">
+          <div class="brand-kicker"><span class="brand-dot"></span> SESSION PAUSED</div>
+          <h1>ПАУЗА</h1>
+          <p class="hero-copy">Тренировочная сессия приостановлена.</p>
+          <button id="resume-button" class="primary-button"><span>ПРОДОЛЖИТЬ</span><b>↗</b></button>
+          <button id="exit-button" class="secondary-button">В ГЛАВНОЕ МЕНЮ</button>
+        </section>
+        <section id="loading-screen" class="loading-screen hidden"><div class="loading-mark">TS<span>.</span></div><div class="loading-track"><i></i></div><p>INITIALIZING COMBAT SYSTEMS</p></section>
+        <div id="hud" class="hud hidden">
+          <div class="hud-top-left"><span class="hud-label">TRAINING FACILITY</span><strong>RANGE / 01</strong><span class="hud-sub">LOCAL SESSION · NO NETWORK</span></div>
+          <div class="hud-top-center"><div class="team-score"><span>CT</span><b>00</b><i>—</i><b>00</b><span>T</span></div><small>WARMUP</small></div>
+          <div class="hud-top-right"><span id="fps-counter">-- FPS</span><span id="time-counter">00:00</span></div>
+          <div class="crosshair" id="crosshair"><i></i><i></i><i></i><i></i><b></b></div>
+          <div class="hit-marker hidden" id="hit-marker">×</div>
+          <div class="hud-bottom-left"><div class="health-ring"><strong id="health-value">100</strong><small>HP</small></div><div class="armor-chip"><span>ARMOR</span><strong>0</strong></div></div>
+          <div class="hud-bottom-center"><div class="stance-indicator" id="stance-indicator">STANDING</div><div class="control-hint">WASD MOVE <i>·</i> SHIFT SPRINT <i>·</i> CTRL CROUCH</div></div>
+          <div class="hud-bottom-right"><div class="weapon-info"><div class="weapon-name" id="weapon-name">AK-47</div><div class="weapon-type" id="weapon-type">ASSAULT RIFLE / 7.62</div><div class="ammo-line"><strong id="ammo-current">30</strong><span>/</span><b id="ammo-reserve">90</b></div></div><div class="weapon-slot">01</div></div>
+          <div class="interaction-prompt" id="interaction-prompt">CLICK TO CAPTURE MOUSE</div>
+          <div class="debug-panel hidden" id="debug-panel"></div>
+          <div class="toast" id="toast"></div>
+        </div>
+        <div id="error-screen" class="error-screen hidden"><strong>GRAPHICS INITIALIZATION FAILED</strong><p id="error-message"></p></div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
