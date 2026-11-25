@@ -32,7 +32,7 @@ export class WeaponManager {
     this.lastPitch = player.cameraRig.pitch;
     this.mouseRotation = new THREE.Vector2();
     this._wheelOff = events.on('input:wheel', ({ direction }) => {
-      if (!this.input.pointerLocked) return;
+      if (!this.input.pointerLocked && !this.input.isTouch) return;
       const ids = WEAPON_SLOTS;
       const current = Math.max(0, ids.indexOf(this.activeId));
       const next = (current + (direction > 0 ? 1 : ids.length - 1)) % ids.length;
@@ -200,7 +200,7 @@ export class WeaponManager {
     }
     const click = this.input.consumeMouse(0);
     const wantsFire = this.input.getMouse(0) && weapon.config.fireMode === 'auto' || click;
-    if (wantsFire && this.input.pointerLocked && this.inspectTimer <= 0 && this.switchCooldown <= 0) this.#fire(weapon);
+    if (wantsFire && (this.input.pointerLocked || this.input.isTouch) && this.inspectTimer <= 0 && this.switchCooldown <= 0) this.#fire(weapon);
 
     this.spread.update(dt, weapon, this.player, this.aiming);
     this.recoil.update(dt, weapon.config);

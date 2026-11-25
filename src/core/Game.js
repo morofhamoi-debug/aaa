@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { GAME_CONFIG } from './Config.js';
 import { EventBus } from './EventBus.js';
 import { StateManager } from './StateManager.js';
@@ -41,7 +40,7 @@ export class Game {
     window.addEventListener('resize', this.onResize, { passive: true });
     window.addEventListener('keydown', this.onKeyDown);
     this.events.on('input:pointerLock', this.onPointerLock);
-    this.events.on('input:pointerLockError', () => this.events.emit('ui:toast', { message: 'POINTER LOCK ERROR' }));
+    this.events.on('input:pointerLockError', () => this.events.emit('ui:toast', { message: 'БРАУЗЕР НЕ ПРЕДОСТАВИЛ ЗАХВАТ МЫШИ' }));
     this.loop = new GameLoop({
       update: (dt) => this.update(dt),
       render: (dt) => this.render(dt),
@@ -53,7 +52,10 @@ export class Game {
   async startTraining() {
     if (!this.state.is('menu')) return;
     this.state.set('loading');
-    const pointerLockRequest = this.input.requestPointerLock().catch(() => false);
+    // Pointer Lock is requested only on non-touch devices. iOS Safari uses touch controls.
+    const pointerLockRequest = this.input.isTouch
+      ? Promise.resolve(true)
+      : this.input.requestPointerLock().then(() => true).catch(() => false);
     await this.weapons.unlockAudio().catch(() => false);
     this.world.resetTargets();
     this.player.position.set(0, 0, 14);
@@ -65,13 +67,17 @@ export class Game {
     this.player.cameraRig.recoilPitch = 0;
     this.player.cameraRig.recoilYaw = 0;
     this.state.set('playing');
-    pointerLockRequest.then((locked) => { if (locked === false) this.ui.showToast('CLICK THE GAME VIEW TO CAPTURE MOUSE'); });
+    pointerLockRequest.then((locked) => {
+      if (locked === false && !this.input.isTouch) this.ui.showToast('КЛИКНИТЕ ПО СЦЕНЕ, ЧТОБЫ ЗАХВАТИТЬ МЫШЬ');
+    });
   }
 
   resume() {
     if (!this.state.is('paused')) return;
     this.state.set('playing');
-    this.input.requestPointerLock().catch(() => this.ui.showToast('CLICK THE GAME VIEW TO CAPTURE MOUSE'));
+    if (!this.input.isTouch) {
+      this.input.requestPointerLock().catch(() => this.ui.showToast('КЛИКНИТЕ ПО СЦЕНЕ, ЧТОБЫ ЗАХВАТИТЬ МЫШЬ'));
+    }
   }
 
   pause() {
@@ -85,13 +91,17 @@ export class Game {
     if (this.state.is('paused') || this.state.is('playing')) this.state.set('menu');
   }
 
-  onPointerLock({ locked }) {
-    if (!locked && this.state.is('playing')) this.pause();
-    if (locked && this.state.is('playing')) this.events.emit('ui:toast', { message: 'MOUSE CAPTURED' });
+  onPointerLock({ locked, wasLocked }) {
+    if (locked) {
+      if (this.state.is('playing')) this.events.emit('ui:toast', { message: 'МЫШЬ ЗАХВАЧЕНА' });
+      return;
+    }
+    // A rejected first request is not treated as a user pause.
+    if (wasLocked && this.state.is('playing')) this.pause();
   }
 
   onKeyDown(event) {
-    if (event.code === 'Escape' && this.state.is('playing') && !document.pointerLockElement) this.pause();
+    if (event.code === 'Escape' && this.state.is('playing') && (!document.pointerLockElement || this.input.isTouch)) this.pause();
     if (event.code === 'F3') this.ui.toggleDebug();
   }
 
@@ -109,7 +119,9 @@ export class Game {
   render(dt) {
     this.renderer.render(this.sceneManager.scene, this.sceneManager.camera);
     this.frameCount++;
-    if (this.state.is('playing') && this.frameCount % 8 === 0) this.ui.updateFrame(dt * 8, this.loop.fps, this.renderer.getInfo(), this.player.getSnapshot());
+    if (this.state.is('playing') && this.frameCount % 8 === 0) {
+      this.ui.updateFrame(dt * 8, this.loop.fps, this.renderer.getInfo(), this.player.getSnapshot());
+    }
   }
 
   dispose() {

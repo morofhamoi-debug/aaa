@@ -30,5 +30,24 @@ if (missingImports.length) {
   console.error('Unresolved relative imports:\n' + missingImports.join('\n'));
   process.exitCode = 1;
 }
+const html = await readFile(resolve(root, '../index.html'), 'utf8');
+const requiredHtml = [
+  'href="./src/styles/main.css"',
+  'href="./src/styles/mobile.css"',
+  'src="./src/main.js"',
+  'type="importmap"',
+  'id="touch-controls"',
+  'id="touch-joystick"',
+  'id="touch-look-zone"'
+];
+const htmlProblems = requiredHtml.filter((token) => !html.includes(token));
+if (htmlProblems.length) {
+  console.error('Missing HTML runtime requirements: ' + htmlProblems.join(', '));
+  process.exitCode = 1;
+}
+if (/src="\\/src\\/main\\.js"/.test(html) || /href="\\/src\\//.test(html)) {
+  console.error('Root-absolute source paths are not supported by project GitHub Pages URLs.');
+  process.exitCode = 1;
+}
 if (process.exitCode) process.exit(process.exitCode);
-console.log(`Syntax and relative-import checks passed for ${files.length} JavaScript modules.`);
+console.log(`Syntax, relative imports and Pages/mobile HTML checks passed for ${files.length} JavaScript modules.`);

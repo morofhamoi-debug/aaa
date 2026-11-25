@@ -5,7 +5,7 @@ export class UIManager {
     this.elements = Object.fromEntries([
       'main-menu', 'pause-menu', 'loading-screen', 'hud', 'error-screen', 'error-message', 'start-button', 'resume-button', 'exit-button',
       'weapon-name', 'weapon-type', 'ammo-current', 'ammo-reserve', 'health-value', 'stance-indicator', 'fps-counter', 'time-counter',
-      'debug-panel', 'hit-marker', 'toast', 'interaction-prompt'
+      'debug-panel', 'hit-marker', 'toast', 'interaction-prompt', 'touch-controls', 'touch-pause-button'
     ].map((id) => [id, document.getElementById(id)]));
     this.sessionTime = 0;
     this.toastTimer = 0;
@@ -17,6 +17,7 @@ export class UIManager {
     this.elements['start-button'].addEventListener('click', () => this.game.startTraining());
     this.elements['resume-button'].addEventListener('click', () => this.game.resume());
     this.elements['exit-button'].addEventListener('click', () => this.game.returnToMenu());
+    this.elements['touch-pause-button']?.addEventListener('click', () => this.game.pause());
     this.events.on('weapon:equipped', ({ config }) => this.updateWeapon(config));
     this.events.on('weapon:ammoChanged', (data) => this.updateAmmo(data));
     this.events.on('weapon:state', (data) => this.updateAmmo(data));
@@ -26,7 +27,7 @@ export class UIManager {
     this.events.on('weapon:reloadStarted', () => this.showToast('RELOADING'));
     this.events.on('input:pointerLockError', () => this.showToast('MOUSE LOCK UNAVAILABLE — CLICK GAME VIEW'));
     this.events.on('ui:toast', ({ message }) => this.showToast(message));
-    this.events.on('input:pointerLock', ({ locked }) => this.elements['interaction-prompt'].classList.toggle('hidden', locked));
+    this.events.on('input:pointerLock', ({ locked }) => this.elements['interaction-prompt'].classList.toggle('hidden', locked || this.game.input.isTouch));
     this.events.on('game:stateChanged', ({ current }) => this.setState(current));
   }
 
@@ -35,6 +36,8 @@ export class UIManager {
     this.elements['pause-menu'].classList.toggle('hidden', state !== 'paused');
     this.elements['loading-screen'].classList.toggle('hidden', state !== 'loading');
     this.elements.hud.classList.toggle('hidden', state !== 'playing');
+    this.elements['touch-controls']?.classList.toggle('hidden', !(state === 'playing' && this.game.input.isTouch));
+    if (this.game.input.isTouch) this.elements['interaction-prompt']?.classList.add('hidden');
     if (state === 'playing') this.sessionTime = 0;
   }
 

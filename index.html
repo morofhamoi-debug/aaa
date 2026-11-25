@@ -2,18 +2,25 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#090d12" />
-    <meta name="description" content="TACTICAL STRIKE — browser tactical FPS prototype." />
+    <meta name="description" content="TACTICAL STRIKE — browser tactical FPS training prototype." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="stylesheet" href="./src/styles/main.css" />
+    <link rel="stylesheet" href="./src/styles/mobile.css" />
+    <script type="importmap">
+      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js" } }
+    </script>
     <title>TACTICAL STRIKE</title>
   </head>
   <body>
     <div id="app">
       <main id="game-shell" aria-label="TACTICAL STRIKE game">
-        <canvas id="game-canvas"></canvas>
+        <canvas id="game-canvas" aria-label="Игровая сцена"></canvas>
         <div id="vignette" aria-hidden="true"></div>
         <section id="main-menu" class="screen-panel">
-          <div class="brand-kicker"><span class="brand-dot"></span> TACTICAL SYSTEMS // TRAINING BUILD 0.1</div>
+          <div class="brand-kicker"><span class="brand-dot"></span> TACTICAL SYSTEMS // TRAINING BUILD 0.2</div>
           <div class="hero-title">TACTICAL<span>STRIKE</span></div>
           <p class="hero-copy">PRECISION IS A HABIT. CONTROL THE SPACE. OWN THE ROUND.</p>
           <div class="menu-divider"></div>
@@ -21,7 +28,7 @@
             <button id="start-button" class="primary-button"><span>НАЧАТЬ ТРЕНИРОВКУ</span><b>↗</b></button>
             <div class="menu-meta"><span>РЕЖИМ</span><strong>WEAPON RANGE</strong><span>СБОРКА</span><strong>EARLY ACCESS</strong></div>
           </div>
-          <div class="menu-foot"><span>WASD / MOUSE</span><span>ESC — PAUSE</span><span>BUILD 001</span></div>
+          <div class="menu-foot"><span>WASD / MOUSE</span><span>ESC — PAUSE</span><span>BUILD 002</span></div>
         </section>
         <section id="pause-menu" class="screen-panel hidden">
           <div class="brand-kicker"><span class="brand-dot"></span> SESSION PAUSED</div>
@@ -44,9 +51,30 @@
           <div class="debug-panel hidden" id="debug-panel"></div>
           <div class="toast" id="toast"></div>
         </div>
-        <div id="error-screen" class="error-screen hidden"><strong>GRAPHICS INITIALIZATION FAILED</strong><p id="error-message"></p></div>
+        <div id="touch-controls" class="touch-controls hidden" aria-label="Сенсорное управление">
+          <div id="touch-look-zone" class="touch-look-zone" aria-label="Проведите пальцем для поворота камеры"></div>
+          <div id="touch-joystick" class="touch-joystick" aria-label="Виртуальный джойстик движения">
+            <span class="joystick-ring"></span><span id="touch-joystick-knob" class="joystick-knob"></span><small>MOVE</small>
+          </div>
+          <div class="touch-actions" aria-label="Игровые действия">
+            <button class="touch-button fire" data-touch-mouse="0">ОГОНЬ</button>
+            <button class="touch-button aim" data-touch-mouse="2">ADS</button>
+            <button class="touch-button" data-touch-key="Space">ПРЫЖОК</button>
+            <button class="touch-button" data-touch-key="ControlLeft">ПРИСЕСТЬ</button>
+            <button class="touch-button" data-touch-key="KeyR">ПЕРЕЗАРЯДКА</button>
+            <button class="touch-button" data-touch-key="Digit1">AK-47</button>
+            <button class="touch-button" data-touch-key="Digit2">ПИСТОЛЕТ</button>
+            <button class="touch-button" data-touch-key="Digit3">НОЖ</button>
+          </div>
+          <button id="touch-pause-button" class="touch-pause-button" aria-label="Пауза">Ⅱ</button>
+        </div>
+        <div id="error-screen" class="error-screen hidden" role="alert">
+          <strong>GRAPHICS INITIALIZATION FAILED</strong>
+          <p id="error-message">Не удалось запустить графический движок.</p>
+          <button id="error-reload-button" class="secondary-button">ПЕРЕЗАГРУЗИТЬ СТРАНИЦУ</button>
+        </div>
       </main>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

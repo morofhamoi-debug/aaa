@@ -4,11 +4,15 @@ Browser-based first-person tactical shooter foundation built with **Vite + Three
 
 > **Asset status:** weapon and hand meshes in this build are original procedural low-poly prototypes. They are not licensed scan-quality or AAA-ready character/weapon assets. Audio is synthesized through Web Audio; no external recordings are bundled. The build is a local training prototype, not a 5v5 networked competitive game.
 
+## Published site and mobile mode
+
+The repository root can run directly on GitHub Pages: `index.html` uses relative CSS paths and a browser import map for the pinned Three.js module. The normal Vite build remains available for development and production packaging. On touch devices, Pointer Lock is not requested; use the left virtual stick to move, drag on the right side of the screen to look, and use the right action buttons to fire, aim, jump, crouch, reload, and switch weapons.
+
 ## Requirements
 
 - Node.js 20.19+ or 22.12+
 - npm 10+
-- A current desktop browser with WebGL 2 and Pointer Lock support
+- A current browser with WebGL 2 support. Pointer Lock is required only for desktop mouse control; touch devices use on-screen controls.
 
 ## Run
 
@@ -17,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (normally `http://localhost:5173`). Click **НАЧАТЬ ТРЕНИРОВКУ** and allow pointer lock. If pointer lock is not acquired, click the game view once.
+Open the URL printed by Vite (normally `http://localhost:5173`). Click **НАЧАТЬ ТРЕНИРОВКУ**. On desktop, allow pointer lock; on phones and tablets, use the on-screen controls.
 
 ## Controls
 
@@ -46,7 +50,7 @@ npm run build
 npm run preview
 ```
 
-The static build uses relative asset paths (`base: './'`) and is suitable for GitHub Pages when the Pages workflow publishes the `dist/` directory. The repository includes a GitHub Actions workflow for building and publishing Pages after Pages is enabled in repository settings.
+The Vite build uses relative asset paths (`base: './'`). The GitHub Pages branch deployment can also serve the source tree directly because `index.html` includes relative stylesheets and an import map. GitHub Actions verifies the source and production build on every push.
 
 ## Architecture
 

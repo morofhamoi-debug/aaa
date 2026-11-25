@@ -16,8 +16,9 @@ export class PlayerCamera {
   }
 
   updateLook() {
-    if (!this.enabled || !this.input.pointerLocked) return;
+    if (!this.enabled) return;
     const delta = this.input.consumeMouseDelta();
+    if (!delta.x && !delta.y) return;
     const cfg = GAME_CONFIG.player;
     this.yaw -= delta.x * this.sensitivity;
     this.pitch -= delta.y * this.sensitivity * cfg.verticalSensitivity * (cfg.invertY ? -1 : 1);
