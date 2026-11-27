@@ -416,6 +416,8 @@ function render() {
   document.documentElement.dataset.theme = state.theme;
   document.documentElement.style.colorScheme = state.theme;
   app.innerHTML = `${headerHTML()}<div class="app-layout">${sidebarHTML()}<main class="main-content"><div class="page-container">${pageContent}<footer class="site-footer"><span>© 2026 VEXA</span><span>Digital Collectibles Marketplace</span><span>Internal demo economy · no real-money operations</span></footer></div></main></div>${mobileNavHTML()}<div id="modal-root">${modalHTML()}</div><div id="toast" role="status" aria-live="polite"></div>`;
+  window.__vexaMounted = true;
+  if (window.__vexaBootWatchdog) clearTimeout(window.__vexaBootWatchdog);
   if (currentPage === 'detail' && state.selectedAsset && safeUrl(state.selectedAsset.model_url)) {
     const container = document.querySelector('#detail-viewer');
     state.viewerDispose = mountGiftViewer(container, safeUrl(state.selectedAsset.model_url));
@@ -750,18 +752,73 @@ app.addEventListener('keydown', (event) => {
   }
 });
 
+function withStartupTimeout(promise, milliseconds, message) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(message)), milliseconds);
+    })
+  ]).finally(() => clearTimeout(timer));
+}
+
+function showStartupFallback(error) {
+  console.error('VEXA startup failed:', error);
+  const reason = error instanceof Error ? error.message : 'Неизвестная ошибка';
+  if (!app) return;
+  app.innerHTML = `<main class="startup-fallback" role="alert">
+    <div class="startup-fallback-card">
+      <div class="boot-mark">V</div>
+      <h1>Не удалось запустить VEXA</h1>
+      <p>Приложение не смогло загрузиться. Проверь подключение к интернету и попробуй ещё раз.</p>
+      <small>${esc(reason).slice(0, 180)}</small>
+      <button class="button button-primary" type="button" id="startup-retry">Перезагрузить приложение</button>
+    </div>
+  </main>`;
+  document.querySelector('#startup-retry')?.addEventListener('click', () => window.location.reload());
+}
+
 async function initialize() {
-  render();
   try {
-    const session = await getSession();
-    state.session = session;
-    state.user = session?.user || null;
-    await loadPublicData();
-    await loadAccount();
     render();
   } catch (error) {
-    toast(error.message, 'error');
+    showStartupFallback(error);
+    return;
   }
+
+  try {
+    const session = await withStartupTimeout(
+      getSession(),
+      8000,
+      'Проверка сессии заняла слишком много времени'
+    );
+    state.session = session;
+    state.user = session?.user || null;
+  } catch (error) {
+    console.error('VEXA session restore failed:', error);
+    state.session = null;
+    state.user = null;
+    toast('Не удалось восстановить вход. Сайт откроется без авторизации.', 'error');
+  }
+
+  const results = await Promise.allSettled([
+    withStartupTimeout(loadPublicData(), 10000, 'Загрузка каталога заняла слишком много времени'),
+    withStartupTimeout(loadAccount(), 10000, 'Загрузка аккаунта заняла слишком много времени')
+  ]);
+
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('VEXA startup data request failed:', result.reason);
+      toast(result.reason?.message || 'Не удалось загрузить часть данных', 'error');
+    }
+  }
+
+  try {
+    render();
+  } catch (error) {
+    showStartupFallback(error);
+  }
+
   subscribeToAuth(async (session) => {
     const previous = state.user?.id;
     state.session = session;
