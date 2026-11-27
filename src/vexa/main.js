@@ -106,14 +106,18 @@ function mobileNavHTML() {
   const items = [
     { id: 'home', label: 'Главная', icon: '⌂' },
     { id: 'market', label: 'Маркет', icon: '◈' },
-    ...(state.user ? [{ id: 'favorites', label: 'Избранное', icon: '♡' }] : []),
     ...(state.user ? [{ id: 'portfolio', label: 'Портфель', icon: '▦' }] : []),
-    { id: state.user ? 'profile' : 'login', label: state.user ? 'Профиль' : 'Войти', icon: '◉' },
-    ...(state.admin ? [{ id: 'admin', label: 'Админ', icon: '⌘' }] : [])
+    ...(state.user ? [{ id: 'favorites', label: 'Избранное', icon: '♡' }] : [{ id: 'login', label: 'Войти', icon: '◉' }]),
+    { id: 'menu', label: 'Ещё', icon: '☷' }
   ];
-  return `<nav class="mobile-nav">${items.map((item) => `<button class="${state.page === item.id ? 'active' : ''}" data-action="${item.id === 'login' ? 'login' : 'navigate'}" data-page="${item.id}"><span>${item.icon}</span><small>${item.label}</small></button>`).join('')}</nav>`;
+  const primaryPages = ['home', 'market', 'portfolio', 'favorites'];
+  return `<nav class="mobile-nav" aria-label="Основная навигация">${items.map((item) => {
+    const active = item.id === 'menu'
+      ? (!primaryPages.includes(state.page) && state.page !== 'detail')
+      : state.page === item.id;
+    return `<button class="${active ? 'active' : ''}" data-action="${item.id === 'login' ? 'login' : 'navigate'}" data-page="${item.id}" aria-label="${item.label}"><span>${item.icon}</span><small>${item.label}</small></button>`;
+  }).join('')}</nav>`;
 }
-
 function rarityTag(rarity) {
   return `<span class="rarity-tag rarity-${rarityClass(rarity)}">${esc(rarity || 'Без редкости')}</span>`;
 }
