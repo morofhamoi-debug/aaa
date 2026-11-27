@@ -101,7 +101,7 @@ export async function getCollections() {
     .limit(VEXA.pageSize));
 }
 
-export async function getVariants({ search = '', collectionId = '', rarity = '' } = {}) {
+export async function getVariants({ search = '', collectionId = '', rarity = '', offset = 0 } = {}) {
   let query = supabase.from('market_assets')
     .select('id,collection_id,gift_type_id,name,description,image_url,metadata,rarity,max_supply,initial_price,model_url,model_format,created_at,market_collections(name,slug),market_gift_types(name)')
     .eq('status', 'published')
@@ -110,7 +110,7 @@ export async function getVariants({ search = '', collectionId = '', rarity = '' 
   if (search.trim()) query = query.ilike('name', `%${search.trim().replace(/[%_]/g, '')}%`);
   if (collectionId) query = query.eq('collection_id', collectionId);
   if (rarity) query = query.eq('rarity', rarity);
-  return unwrap(query);
+  return unwrap(query.range(offset, offset + VEXA.pageSize - 1));
 }
 
 export async function getListings({ assetId = null, mine = false, userId = null } = {}) {
@@ -166,6 +166,16 @@ export async function getFavorites(userId) {
   return unwrap(supabase.from('market_favorites')
     .select('asset_id,created_at')
     .eq('user_id', userId));
+}
+
+export async function getFavoriteVariants(userId) {
+  const favorites = await getFavorites(userId);
+  const ids = (favorites || []).map((item) => item.asset_id);
+  if (!ids.length) return [];
+  return unwrap(supabase.from('market_assets')
+    .select('id,collection_id,gift_type_id,name,description,image_url,metadata,rarity,max_supply,initial_price,model_url,model_format,created_at,market_collections(name,slug),market_gift_types(name)')
+    .eq('status', 'published')
+    .in('id', ids));
 }
 
 export async function setFavorite(userId, assetId, enabled) {
@@ -263,8 +273,15 @@ export async function uploadModel(file, userId) {
   if (!(file instanceof File) || !file.name.toLowerCase().endsWith('.glb')) {
     throw new Error('Можно загрузить только файл .glb');
   }
-  if (file.size < 1 || file.size > VEXA.modelMaxBytes) {
+  if (file.size < 12 || file.size > VEXA.modelMaxBytes) {
     throw new Error('Размер GLB должен быть не больше 25 МБ');
+  }
+  const header = new DataView(await file.slice(0, 12).arrayBuffer());
+  const magic = header.getUint32(0, true);
+  const version = header.getUint32(4, true);
+  const declaredLength = header.getUint32(8, true);
+  if (magic !== 0x46546c67 || version !== 2 || declaredLength !== file.size) {
+    throw new Error('Файл не является корректной бинарной GLB-моделью версии 2');
   }
   const path = `models/${userId}/${crypto.randomUUID()}.glb`;
   const { error } = await supabase.storage.from(VEXA.storageBucket).upload(path, file, {

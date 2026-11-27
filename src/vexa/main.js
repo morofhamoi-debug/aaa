@@ -1,6 +1,6 @@
 import {
   callMarket, getSession, signUp, signIn, signOut, sendPasswordReset, updatePassword,
-  getProfile, getWallet, getCollections, getVariants, getListings, getPortfolio,
+  getProfile, getWallet, getCollections, getVariants, getListings, getPortfolio, getFavoriteVariants,
   getMyOrders, getTrades, getFavorites, setFavorite, getNotifications,
   markNotificationRead, getExchangeRate, getCandles, submitOrder, cancelOrder, checkAdmin,
   getAdminOverview, getAdminSettings, getAdminCatalog, getPublicStats, listAdminUsers, createCollection, createGiftType,
@@ -55,8 +55,11 @@ function navButton(item) {
 
 function headerHTML() {
   const signedIn = Boolean(state.user);
+  const rateTitle = state.rate?.fetched_at
+    ? `Курс Банка России: ${Number(rateValue()).toFixed(4)} ₽/$ · обновлён ${formatDate(state.rate.fetched_at)} ${state.rate.stale ? '· устаревшие данные' : ''}`
+    : 'Курс USD/RUB пока недоступен';
   const balance = signedIn
-    ? `<button class="balance-pill" data-action="currency" ${rateValue() ? '' : 'disabled'} title="${state.rate?.stale ? 'Курс не обновился. Показано последнее сохранённое значение.' : 'Нажмите, чтобы изменить отображение валюты'}">
+    ? `<button class="balance-pill" data-action="currency" ${rateValue() ? '' : 'disabled'} title="${esc(rateTitle)}">
         <span class="balance-currency">${moneyLabel()}</span><strong>${formatBalance(getBalance(), state.currency, rateValue())}</strong>
       </button>`
     : '<button class="balance-pill guest-balance" data-action="login"><span>Войти</span><strong>в аккаунт</strong></button>';
@@ -78,6 +81,7 @@ function sidebarHTML() {
   const nav = [
     { id: 'home', label: 'Обзор', icon: '⌂' },
     { id: 'market', label: 'Маркет', icon: '◈' },
+    { id: 'favorites', label: 'Избранное', icon: '♡', auth: true },
     { id: 'portfolio', label: 'Портфель', icon: '▦', auth: true },
     { id: 'activity', label: 'История', icon: '↗', auth: true }
   ];
@@ -96,6 +100,7 @@ function mobileNavHTML() {
   const items = [
     { id: 'home', label: 'Главная', icon: '⌂' },
     { id: 'market', label: 'Маркет', icon: '◈' },
+    ...(state.user ? [{ id: 'favorites', label: 'Избранное', icon: '♡' }] : []),
     ...(state.user ? [{ id: 'portfolio', label: 'Портфель', icon: '▦' }] : []),
     { id: state.user ? 'profile' : 'login', label: state.user ? 'Профиль' : 'Войти', icon: '◉' },
     ...(state.admin ? [{ id: 'admin', label: 'Админ', icon: '⌘' }] : [])
@@ -193,7 +198,7 @@ function marketPage() {
     </section>
     <section class="market-results">
       <div class="results-line"><span>${variants.length} вариантов</span><span>Цены указаны во внутренних единицах VEXA</span></div>
-      ${variants.length ? `<div class="nft-grid">${variants.map(variantCard).join('')}</div>` : emptyState('Ничего не найдено', 'Измени параметры поиска или вернись к полному каталогу.')}
+      ${variants.length ? `<div class="nft-grid">${variants.map(variantCard).join('')}</div>${state.catalogHasMore ? '<div class="load-more-wrap"><button class="button button-outline" data-action="load-more">Показать ещё</button></div>' : ''}` : emptyState('Ничего не найдено', 'Измени параметры поиска или вернись к полному каталогу.')}
     </section>`;
 }
 
@@ -259,6 +264,13 @@ function portfolioPage() {
         return `<article class="portfolio-card"><button class="portfolio-card-open" data-action="asset" data-id="${asset.id}"><div class="portfolio-art">${safeUrl(asset.image_url) ? `<img src="${esc(safeUrl(asset.image_url))}" alt="" loading="lazy">` : '<span>V</span>'}</div><div class="portfolio-card-info"><strong>${esc(asset.name)}</strong><span>${esc(asset.rarity || '')} · #${item.serial_number}</span></div></button><div class="portfolio-card-footer">${listings.has(item.id) ? '<span class="status-chip">На продаже</span>' : `<button class="button button-small button-outline" data-action="sell-item" data-id="${item.id}">Выставить на продажу</button>`}</div></article>`;
       }).join('')}</div>` : emptyState('Портфель пока пуст', 'Купленные или полученные экземпляры будут отображаться здесь.', '<button class="button button-primary" data-action="navigate" data-page="market">Перейти в маркет</button>')}
     </section>`;
+}
+
+function favoritesPage() {
+  if (!state.user) return authRequiredPage();
+  const items = state.favoriteVariants || [];
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / SAVED ITEMS</span><h1>Избранное</h1><p>Коллекционные варианты, которые ты сохранил.</p></div><div class="heading-stat"><strong>${items.length}</strong><span>сохранено</span></div></section>
+    <section class="content-section">${items.length ? `<div class="nft-grid">${items.map(variantCard).join('')}</div>` : emptyState('Избранное пусто', 'Открой страницу NFT и нажми «Добавить в избранное».', '<button class="button button-primary" data-action="navigate" data-page="market">Открыть маркет</button>')}</section>`;
 }
 
 function activityPage() {
@@ -343,6 +355,7 @@ function render() {
   else if (currentPage === 'market') pageContent = marketPage();
   else if (currentPage === 'detail') pageContent = detailPage();
   else if (currentPage === 'portfolio') pageContent = portfolioPage();
+  else if (currentPage === 'favorites') pageContent = favoritesPage();
   else if (currentPage === 'activity') pageContent = activityPage();
   else if (currentPage === 'profile') pageContent = profilePage();
   else if (currentPage === 'notifications') pageContent = notificationsPage();
@@ -374,7 +387,7 @@ async function loadPublicData() {
 async function loadAccount() {
   if (!state.user) {
     state.profile = null; state.wallet = null; state.portfolio = []; state.myOrders = [];
-    state.favorites = new Set(); state.notifications = []; state.admin = false;
+    state.favoriteVariants = []; state.favorites = new Set(); state.notifications = []; state.admin = false;
     state.rate = null;
     return;
   }
@@ -386,6 +399,7 @@ async function loadAccount() {
   state.profile = profile; state.wallet = wallet; state.portfolio = portfolio || [];
   state.myOrders = orders || []; state.favorites = new Set((favorites || []).map((item) => item.asset_id));
   state.notifications = notifications || []; state.rate = rate; state.admin = admin;
+  state.favoriteVariants = state.favorites.size ? await getFavoriteVariants(state.user.id) : [];
   if (!rateValue()) state.currency = 'RUB';
   if (state.admin) await loadAdminData();
 }
@@ -413,7 +427,7 @@ async function reloadAccountAndRender() {
 
 function navigate(page) {
   if (page === 'login') { openAuth('login'); return; }
-  if (['portfolio', 'activity', 'profile', 'notifications'].includes(page) && !state.user) {
+  if (['portfolio', 'favorites', 'activity', 'profile', 'notifications'].includes(page) && !state.user) {
     openAuth('login'); return;
   }
   if (page === 'admin' && !state.admin) {
@@ -422,20 +436,37 @@ function navigate(page) {
   state.page = page;
   state.modal = null;
   if (page === 'market') loadCatalog().catch((error) => toast(error.message, 'error'));
+  else if (page === 'favorites') loadFavorites().catch((error) => toast(error.message, 'error'));
   else render();
 }
 
-async function loadCatalog() {
-  const [variants, listings] = await Promise.all([
-    getVariants({ search: state.catalogSearch, collectionId: state.collectionFilter, rarity: state.rarityFilter }),
-    getListings()
-  ]);
-  state.variants = variants || []; state.listings = listings || [];
+async function loadCatalog({ append = false } = {}) {
+  const offset = append ? state.variants.length : 0;
+  if (append) state.catalogLoadingMore = true;
+  try {
+    const [variants, listings] = await Promise.all([
+      getVariants({ search: state.catalogSearch, collectionId: state.collectionFilter, rarity: state.rarityFilter, offset }),
+      getListings()
+    ]);
+    state.variants = append ? [...state.variants, ...(variants || [])] : (variants || []);
+    state.listings = listings || [];
+    state.catalogHasMore = (variants || []).length === 48;
+    state.catalogLoadingMore = false;
+    render();
+  } catch (error) {
+    state.catalogLoadingMore = false;
+    throw error;
+  }
+}
+
+async function loadFavorites() {
+  if (!state.user) { state.favoriteVariants = []; return; }
+  state.favoriteVariants = await getFavoriteVariants(state.user.id);
   render();
 }
 
 async function openAsset(assetId) {
-  const asset = state.variants.find((item) => item.id === assetId);
+  const asset = [...state.variants, ...(state.favoriteVariants || [])].find((item) => item.id === assetId);
   if (!asset) { toast('Предмет не найден или больше не опубликован', 'error'); return; }
   state.selectedAsset = asset;
   state.page = 'detail';
@@ -475,6 +506,7 @@ async function handleClick(event) {
       if (!rateValue()) { toast('Курс валют пока недоступен', 'error'); return; }
       state.currency = state.currency === 'RUB' ? 'USD' : 'RUB';
       render();
+      toast(`Курс Банка России: ${Number(rateValue()).toFixed(4)} ₽ за $1 · ${formatDate(state.rate?.fetched_at)}${state.rate?.stale ? ' · последний сохранённый курс' : ''}`);
     } else if (action === 'asset') openAsset(target.dataset.id);
     else if (action === 'back-market') navigate('market');
     else if (action === 'timeframe' && state.selectedAsset) {
@@ -493,6 +525,7 @@ async function handleClick(event) {
       const id = target.dataset.id; const enabled = !state.favorites.has(id);
       await setFavorite(state.user.id, id, enabled);
       enabled ? state.favorites.add(id) : state.favorites.delete(id);
+      state.favoriteVariants = await getFavoriteVariants(state.user.id);
       render();
     } else if (action === 'buy') await buyCollectible(target.dataset.collectible, Number(target.dataset.price));
     else if (action === 'sell-item') { state.modal = { type: 'sell', collectibleId: target.dataset.id }; render(); }
