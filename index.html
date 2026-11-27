@@ -15,6 +15,23 @@
   </head>
   <body>
     <div id="app"><div class="boot-screen"><div class="boot-mark">V</div><span>VEXA</span><i></i></div></div>
+    <script>
+      window.__vexaMounted = false;
+      function showVexaBootFallback() {
+        if (window.__vexaMounted) return;
+        const root = document.getElementById('app');
+        if (!root || root.querySelector('.startup-fallback')) return;
+        root.innerHTML = '<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#101014;color:#f4f3f8;font-family:Arial,sans-serif;text-align:center"><section style="width:min(420px,100%);padding:30px 22px;border:1px solid #34313f;border-radius:22px;background:#191820"><div style="width:54px;height:54px;margin:0 auto 20px;display:grid;place-items:center;border-radius:17px;background:#7969e8;color:white;font-size:30px;font-weight:800">V</div><h1 style="font-size:23px;margin:0 0 12px">VEXA не запустилась</h1><p style="color:#aaa7b7;line-height:1.6;margin:0 0 22px">Загрузка заняла слишком много времени. Проверь интернет и перезапусти приложение.</p><button id="vexa-boot-retry" style="min-height:50px;width:100%;border:0;border-radius:12px;background:#8978f1;color:white;font-size:15px;font-weight:700">Перезагрузить</button></section></main>';
+        document.getElementById('vexa-boot-retry')?.addEventListener('click', () => window.location.reload());
+      }
+      window.__vexaBootWatchdog = setTimeout(showVexaBootFallback, 12000);
+      window.addEventListener('error', (event) => {
+        if (!window.__vexaMounted && event instanceof ErrorEvent) showVexaBootFallback();
+      });
+      window.addEventListener('unhandledrejection', () => {
+        if (!window.__vexaMounted) showVexaBootFallback();
+      });
+    </script>
     <script type="module" src="./src/vexa/main.js"></script>
   </body>
 </html>
