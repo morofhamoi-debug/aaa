@@ -286,17 +286,52 @@ function favoritesPage() {
     <section class="content-section">${items.length ? `<div class="nft-grid">${items.map(variantCard).join('')}</div>` : emptyState('Избранное пусто', 'Открой страницу NFT и нажми «Добавить в избранное».', '<button class="button button-primary" data-action="navigate" data-page="market">Открыть маркет</button>')}</section>`;
 }
 
-function activityPage() {
+function collectionsPage() {
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / COLLECTIONS</span><h1>Коллекции</h1><p>Все опубликованные серии цифровых подарков в одном разделе.</p></div><div class="heading-stat"><strong>${state.collections.length}</strong><span>коллекций</span></div></section>
+    <section class="content-section"><div class="collection-grid collections-page-grid">${state.collections.map((collection) => `<button class="collection-card" data-action="collection" data-id="${collection.id}">
+      <div class="collection-art">${safeUrl(collection.cover_url) ? `<img src="${esc(safeUrl(collection.cover_url))}" alt="" loading="lazy">` : '<span>V.</span>'}</div>
+      <div><strong>${esc(collection.name)}</strong><small>${esc(collection.slug)}</small></div><span>↗</span>
+    </button>`).join('')}</div>
+    ${state.collections.length ? '' : emptyState('Коллекций пока нет', 'Опубликованные администратором коллекции появятся здесь.')}</section>`;
+}
+
+function ordersPage() {
   if (!state.user) return authRequiredPage();
-  return `<section class="page-heading"><div><span class="eyebrow">VEXA / ORDER HISTORY</span><h1>История и ордера</h1><p>Твои открытые заявки и завершённые действия.</p></div></section>
-    <section class="content-section">${sectionHeader('Мои ордера', 'Покупки резервируют баланс; отмена открытой заявки освобождает резерв.')}
-      ${state.myOrders.length ? `<div class="orders-table">${state.myOrders.map((order) => `<div class="order-row"><div><span class="order-side ${order.side}">${order.side === 'buy' ? 'BUY' : 'SELL'}</span><strong>${formatPrice(order.price, state.currency, rateValue())} ${moneyLabel()}</strong></div><div><strong>${esc(order.status.toUpperCase())}</strong><small>${formatRelative(order.created_at)}</small></div><div>${order.reserved_amount ? `<span class="muted-caption">Резерв: ${formatPrice(order.reserved_amount, state.currency, rateValue())}</span>` : ''}</div>${order.status === 'open' ? `<button class="button button-small button-outline" data-action="cancel-order" data-id="${order.id}">Отменить</button>` : '<span class="muted-caption">—</span>'}</div>`).join('')}</div>` : emptyState('Заявок пока нет', 'После выставления NFT или размещения заявки на покупку она появится здесь.')}
-    </section>
-    <section class="content-section">${sectionHeader('Последние сделки на площадке', 'Публичная история исполненных ордеров')}
-      ${state.trades.length ? `<div class="activity-table">${state.trades.map(tradeRow).join('')}</div>` : emptyState('Сделок пока нет', 'VEXA не генерирует фиктивную историю торгов.')}
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / MY ORDERS</span><h1>Мои ордера</h1><p>Здесь находятся твои заявки на покупку и продажу.</p></div><div class="heading-stat"><strong>${state.myOrders.filter((order) => order.status === 'open').length}</strong><span>активных заявок</span></div></section>
+    <section class="content-section">${sectionHeader('Все заявки', 'Покупки резервируют баланс; отмена заявки освобождает резерв.')}
+      ${state.myOrders.length ? `<div class="orders-table">${state.myOrders.map((order) => `<div class="order-row"><div><span class="order-side ${order.side}">${order.side === 'buy' ? 'ПОКУПКА' : 'ПРОДАЖА'}</span><strong>${formatPrice(order.price, state.currency, rateValue())} ${moneyLabel()}</strong></div><div><strong>${esc(order.status === 'open' ? 'Открыта' : order.status === 'filled' ? 'Исполнена' : order.status === 'cancelled' ? 'Отменена' : order.status)}</strong><small>${formatRelative(order.created_at)}</small></div><div>${order.reserved_amount ? `<span class="muted-caption">Резерв: ${formatPrice(order.reserved_amount, state.currency, rateValue())}</span>` : ''}</div>${order.status === 'open' ? `<button class="button button-small button-outline" data-action="cancel-order" data-id="${order.id}">Отменить</button>` : '<span class="muted-caption">—</span>'}</div>`).join('')}</div>` : emptyState('Заявок пока нет', 'После выставления NFT или отправки заявки на покупку она появится здесь.', '<button class="button button-primary" data-action="navigate" data-page="market">Открыть маркет</button>')}
     </section>`;
 }
 
+function tradesPage() {
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / MARKET HISTORY</span><h1>История сделок</h1><p>Публичная история исполненных операций на площадке.</p></div><div class="heading-stat"><strong>${state.trades.length}</strong><span>последних записей</span></div></section>
+    <section class="content-section">${state.trades.length ? `<div class="activity-table">${state.trades.map(tradeRow).join('')}</div>` : emptyState('Сделок пока нет', 'Здесь появятся только фактически завершённые сделки. VEXA не генерирует фиктивную активность.')}</section>`;
+}
+
+function menuPage() {
+  const links = [
+    { id: 'collections', icon: '▧', title: 'Коллекции', desc: 'Опубликованные серии' },
+    { id: 'trades', icon: '↗', title: 'История сделок', desc: 'Завершённые операции' },
+    ...(state.user ? [
+      { id: 'favorites', icon: '♡', title: 'Избранное', desc: 'Сохранённые NFT' },
+      { id: 'portfolio', icon: '▦', title: 'Мой портфель', desc: 'Твои экземпляры' },
+      { id: 'orders', icon: '⇄', title: 'Мои ордера', desc: 'Заявки на покупку и продажу' },
+      { id: 'notifications', icon: '♧', title: 'Уведомления', desc: 'Сообщения аккаунта' },
+      { id: 'profile', icon: '◉', title: 'Профиль', desc: 'Настройки аккаунта' }
+    ] : [
+      { id: 'login', icon: '◉', title: 'Войти', desc: 'Вход или регистрация' }
+    ]),
+    ...(state.admin ? [{ id: 'admin', icon: '⌘', title: 'Администрированих', desc: 'Управление площадкой' }] : [])
+  ];
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / NAVIGATION</span><h1>Все разделы</h1><p>Выбери нужный экран. Каждый раздел открывается отдельно.</p></div></section>
+    <section class="content-section"><div class="hub-grid menu-hub-grid">${links.map((item) => `<button class="hub-card" data-action="${item.id === 'login' ? 'login' : 'navigate'}" data-page="${item.id}">
+      <span class="hub-card-icon">${item.icon}</span><strong>${item.title}</strong><small>${item.desc}</small><span class="hub-card-arrow">↗</span>
+    </button>`).join('')}</div></section>`;
+}
+
+function activityPage() {
+  return ordersPage();
+}
 function profilePage() {
   if (!state.user) return authRequiredPage();
   const profile = state.profile || {};
