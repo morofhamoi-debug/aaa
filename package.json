@@ -1,18 +1,19 @@
 {
-  "name": "tactical-strike",
-  "version": "0.1.0",
+  "name": "vexa-marketplace",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node scripts/check.mjs && node scripts/unit-tests.mjs"
+    "check": "node scripts/check.mjs && node scripts/unit-tests.mjs && node scripts/vexa-tests.mjs"
   },
   "dependencies": {
-    "three": "^0.182.0"
+    "@supabase/supabase-js": "2.95.0",
+    "three": "0.182.0"
   },
   "devDependencies": {
-    "vite": "^7.2.2"
+    "vite": "7.2.2"
   }
 }

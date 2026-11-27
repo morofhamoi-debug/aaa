@@ -1,10 +1,20 @@
-name: Verify TACTICAL STRIKE
+name: VEXA — build and deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -17,7 +27,27 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Verify source and unit tests
+      - name: Check source and unit tests
         run: npm run check
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
       - name: Build production bundle
         run: npm run build
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

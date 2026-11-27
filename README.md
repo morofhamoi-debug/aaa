@@ -1,48 +1,41 @@
-# TACTICAL STRIKE
+# VEXA — Digital Collectibles Marketplace
 
-Browser-based first-person tactical shooter foundation built with **Vite + Three.js**. This repository currently implements the first playable vertical slice for Parts 1–3: engine foundation, first-person player controller, collision-aware training range, procedural weapon prototypes, firing/reload/ammo/recoil/spread, hit detection, synthesized audio feedback, and HUD events.
+VEXA is a responsive digital collectibles marketplace built with Vite, Three.js and Supabase. It uses an internal test economy only: there are no real-money deposits or withdrawals, payment cards, blockchain tokens or smart contracts.
 
-> **Asset status:** weapon and hand meshes in this build are original procedural low-poly prototypes. They are not licensed scan-quality or AAA-ready character/weapon assets. Audio is synthesized through Web Audio; no external recordings are bundled. The build is a local training prototype, not a 5v5 networked competitive game.
+## Current implementation
 
-## Published site and mobile mode
+- Supabase email/password authentication and email confirmation flow.
+- Server-created profiles and wallets with a starting balance of **0**.
+- Published collections, base gift types and rarity variants.
+- Unique internal collectibles, supply limits and server-side minting.
+- GLB uploads to the `market-assets` Storage bucket and browser 3D viewing with Three.js.
+- Live sell listings, buy/sell order submission, cancellation and atomic matching through protected SQL RPCs.
+- Internal wallet ledger, reserved balances, actual trade records and OHLC candle storage from executed trades.
+- Portfolio, order history, favorites, notifications and profile settings.
+- Server-checked administrator role, collection/gift/variant creation, virtual balance adjustments and admin audit log.
+- Cached USD/RUB display rate fetched server-side from the Bank of Russia.
+- Light/dark themes, responsive desktop/mobile navigation and GitHub Pages build workflow.
 
-The repository root can run directly on GitHub Pages: `index.html` uses relative CSS paths and a browser import map for the pinned Three.js module. The normal Vite build remains available for development and production packaging. On touch devices, Pointer Lock is not requested; use the left virtual stick to move, drag on the right side of the screen to look, and use the right action buttons to fire, aim, jump, crouch, reload, and switch weapons.
+The UI does not create seed collectibles, fake trades, artificial trading volume or fictitious market metrics. An empty catalogue is expected until an administrator publishes actual items.
 
-## Requirements
+## Stack
 
-- Node.js 20.19+ or 22.12+
-- npm 10+
-- A current browser with WebGL 2 support. Pointer Lock is required only for desktop mouse control; touch devices use on-screen controls.
+- Vite 7
+- JavaScript ES modules
+- Three.js 0.182 / GLTFLoader / OrbitControls
+- Supabase JS 2
+- Supabase Auth, PostgreSQL, RLS, Edge Functions, Storage and Realtime
 
-## Run
+## Local development
+
+Requirements: Node.js 20.19+ or 22.12+ and npm 10+.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (normally `http://localhost:5173`). Click **НАЧАТЬ ТРЕНИРОВКУ**. On desktop, allow pointer lock; on phones and tablets, use the on-screen controls.
-
-## Controls
-
-| Input | Action |
-|---|---|
-| WASD | Move |
-| Mouse | Look |
-| Shift | Sprint forward |
-| Ctrl | Crouch |
-| Space | Jump |
-| Left mouse | Fire / melee |
-| Right mouse | Aim |
-| R | Reload |
-| 1–0 | Select weapon |
-| K / J / L | Select MAC-10 / Nova / XM1014 |
-| Mouse wheel | Cycle quick slots |
-| Q | Inspect prototype |
-| F3 | Debug panel |
-| Esc | Pause / release pointer lock |
-
-## Build and checks
+Production checks:
 
 ```bash
 npm run check
@@ -50,26 +43,46 @@ npm run build
 npm run preview
 ```
 
-The Vite build uses relative asset paths (`base: './'`). The GitHub Pages branch deployment can also serve the source tree directly because `index.html` includes relative stylesheets and an import map. GitHub Actions verifies the source and production build on every push.
+The Vite build uses relative paths and is deployed by GitHub Actions to GitHub Pages. The repository still contains the original FPS source modules in `src/core`, `src/player`, `src/world` and `src/weapons`; they have not been deleted. VEXA is now the root application.
 
-## Architecture
+## Supabase project
 
-- `src/core/` — Game lifecycle, state machine, renderer, fixed-step loop, event bus, asset manager.
-- `src/world/` — training range, materials, world collision AABBs and target hitboxes.
-- `src/player/` — input manager, movement acceleration/friction, vertical physics, first-person camera and camera effects.
-- `src/weapons/` — centralized weapon stats, prototype viewmodels, weapon state, recoil, spread, hitscan, impacts/tracers and Web Audio feedback.
-- `src/interface/` — menu, pause screen, HUD, ammo, hit markers and debug overlay.
+The frontend uses only the project's public publishable key from `src/vexa/config.js`. It is not a service-role key. Never add a service-role or secret key to the frontend.
 
-The simulation uses a fixed 120 Hz update step with a capped frame delta. Rendering is performed by one `requestAnimationFrame` loop and one `WebGLRenderer` instance.
+The database migrations applied to the connected project are stored in `supabase/migrations/`. The initial marketplace migrations pre-existed this VEXA work and were preserved.
 
-## Implemented prototype weapon set
+### First administrator
 
-AK-47, M4A4, M4A1-S, AWP, SSG 08, Glock-18, USP-S, Desert Eagle, MP5-SD, MAC-10, Nova, XM1014, and combat knife have separate configuration entries and generated silhouettes. The current hands are shared procedural arm/hand geometry with segmented fingers; they are not skinned skeletal character assets, full finger IK, or motion-captured reload animations.
+Admin access is **not** granted by email address, username or client-side state. After registering and confirming your own account, an existing project owner must grant your user UUID from the trusted SQL editor:
 
-## Known scope limits
+```sql
+insert into private.market_admins (user_id)
+values ('YOUR_AUTH_USER_UUID'::uuid)
+on conflict (user_id) do nothing;
+```
 
-- No multiplayer/server authority, bots, round economy, bomb objective, armor, penetration, destructible materials, or match flow yet.
-- No external high-detail GLB models, baked PBR texture sets, skeletal hand rig, authored weapon animations, or recorded weapon audio yet.
-- Character collision uses a performant axis-separated AABB controller with a fixed-radius vertical body approximation; it is not a full capsule/rigid-body solver.
-- Aim for scoped weapons currently narrows FOV and changes viewmodel placement; dedicated optical scope masking/reticles are not yet implemented.
-- Browser automation / visual QA must still be performed in a real browser before treating this as release-ready.
+Get the UUID from the Supabase Auth users page. Do not execute this from the browser. The admin role is then checked by the Edge Function on every administrative request.
+
+### Auth configuration
+
+In Supabase Authentication settings, configure the site URL and redirect allowlist for the deployed GitHub Pages URL and your local development URL. Email confirmation and password recovery require a functioning email provider; configure custom SMTP before production use.
+
+## Economy and trading notes
+
+- The wallet stores integer internal VEX units; the ₽/$ control changes display only.
+- Each new wallet starts with zero balance.
+- The Bank of Russia USD/RUB rate is fetched and cached by the Edge Function; a last-known rate is used on provider failure.
+- Buy orders reserve available balance. Cancelling an open buy order releases the reservation.
+- Order matching, balance updates, ownership transfer, ledger writes and trade records are performed by the database trading function.
+- Trades and volume are derived only from actual executed orders.
+
+**Known staged items:** fee collection is kept at 0 until commission calculation is integrated into the atomic matching SQL function; the current admin control can pause/resume trading. Historical market indicators are shown only from stored executions. Additional candle rollups, advanced chart UI, email notifications, moderation tools, and full admin collection/user-edit workflows remain staged work.
+
+## Security notes
+
+- Public client access is restricted by RLS.
+- Wallets and ledger are owner-readable; client roles have no direct wallet write access.
+- Admin RPCs execute only through the authenticated Edge Function and verify membership in `private.market_admins`.
+- Model uploads are restricted to administrator users and the `models/` storage folder.
+- Trading requests derive the actor from the verified Supabase session, not from a browser-supplied user id.
+- The project has no real-money or blockchain integration.

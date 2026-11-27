@@ -1,80 +1,20 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#090d12" />
-    <meta name="description" content="TACTICAL STRIKE — browser tactical FPS training prototype." />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="stylesheet" href="./src/styles/main.css" />
-    <link rel="stylesheet" href="./src/styles/mobile.css" />
-    <script type="importmap">
-      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js" } }
-    </script>
-    <title>TACTICAL STRIKE</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#101014">
+    <meta name="description" content="VEXA — маркетплейс цифровых коллекционных подарков с 3D-моделями и внутренней торговой системой.">
+    <meta name="color-scheme" content="dark light">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237e6df2'/%3E%3Cpath d='M13 16h10l9 23 9-23h10L36 50H28z' fill='white'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/vexa/styles.css">
+    <title>VEXA — Digital Collectibles</title>
   </head>
   <body>
-    <div id="app">
-      <main id="game-shell" aria-label="TACTICAL STRIKE game">
-        <canvas id="game-canvas" aria-label="Игровая сцена"></canvas>
-        <div id="vignette" aria-hidden="true"></div>
-        <section id="main-menu" class="screen-panel">
-          <div class="brand-kicker"><span class="brand-dot"></span> TACTICAL SYSTEMS // TRAINING BUILD 0.2</div>
-          <div class="hero-title">TACTICAL<span>STRIKE</span></div>
-          <p class="hero-copy">PRECISION IS A HABIT. CONTROL THE SPACE. OWN THE ROUND.</p>
-          <div class="menu-divider"></div>
-          <div class="menu-actions">
-            <button id="start-button" class="primary-button"><span>НАЧАТЬ ТРЕНИРОВКУ</span><b>↗</b></button>
-            <div class="menu-meta"><span>РЕЖИМ</span><strong>WEAPON RANGE</strong><span>СБОРКА</span><strong>EARLY ACCESS</strong></div>
-          </div>
-          <div class="menu-foot"><span>WASD / MOUSE</span><span>ESC — PAUSE</span><span>BUILD 002</span></div>
-        </section>
-        <section id="pause-menu" class="screen-panel hidden">
-          <div class="brand-kicker"><span class="brand-dot"></span> SESSION PAUSED</div>
-          <h1>ПАУЗА</h1>
-          <p class="hero-copy">Тренировочная сессия приостановлена.</p>
-          <button id="resume-button" class="primary-button"><span>ПРОДОЛЖИТЬ</span><b>↗</b></button>
-          <button id="exit-button" class="secondary-button">В ГЛАВНОЕ МЕНЮ</button>
-        </section>
-        <section id="loading-screen" class="loading-screen hidden"><div class="loading-mark">TS<span>.</span></div><div class="loading-track"><i></i></div><p>INITIALIZING COMBAT SYSTEMS</p></section>
-        <div id="hud" class="hud hidden">
-          <div class="hud-top-left"><span class="hud-label">TRAINING FACILITY</span><strong>RANGE / 01</strong><span class="hud-sub">LOCAL SESSION · NO NETWORK</span></div>
-          <div class="hud-top-center"><div class="team-score"><span>CT</span><b>00</b><i>—</i><b>00</b><span>T</span></div><small>WARMUP</small></div>
-          <div class="hud-top-right"><span id="fps-counter">-- FPS</span><span id="time-counter">00:00</span></div>
-          <div class="crosshair" id="crosshair"><i></i><i></i><i></i><i></i><b></b></div>
-          <div class="hit-marker hidden" id="hit-marker">×</div>
-          <div class="hud-bottom-left"><div class="health-ring"><strong id="health-value">100</strong><small>HP</small></div><div class="armor-chip"><span>ARMOR</span><strong>0</strong></div></div>
-          <div class="hud-bottom-center"><div class="stance-indicator" id="stance-indicator">STANDING</div><div class="control-hint">WASD MOVE <i>·</i> SHIFT SPRINT <i>·</i> CTRL CROUCH</div></div>
-          <div class="hud-bottom-right"><div class="weapon-info"><div class="weapon-name" id="weapon-name">AK-47</div><div class="weapon-type" id="weapon-type">ASSAULT RIFLE / 7.62</div><div class="ammo-line"><strong id="ammo-current">30</strong><span>/</span><b id="ammo-reserve">90</b></div></div><div class="weapon-slot">01</div></div>
-          <div class="interaction-prompt" id="interaction-prompt">CLICK TO CAPTURE MOUSE</div>
-          <div class="debug-panel hidden" id="debug-panel"></div>
-          <div class="toast" id="toast"></div>
-        </div>
-        <div id="touch-controls" class="touch-controls hidden" aria-label="Сенсорное управление">
-          <div id="touch-look-zone" class="touch-look-zone" aria-label="Проведите пальцем для поворота камеры"></div>
-          <div id="touch-joystick" class="touch-joystick" aria-label="Виртуальный джойстик движения">
-            <span class="joystick-ring"></span><span id="touch-joystick-knob" class="joystick-knob"></span><small>MOVE</small>
-          </div>
-          <div class="touch-actions" aria-label="Игровые действия">
-            <button class="touch-button fire" data-touch-mouse="0">ОГОНЬ</button>
-            <button class="touch-button aim" data-touch-mouse="2">ADS</button>
-            <button class="touch-button" data-touch-key="Space">ПРЫЖОК</button>
-            <button class="touch-button" data-touch-key="ControlLeft">ПРИСЕСТЬ</button>
-            <button class="touch-button" data-touch-key="KeyR">ПЕРЕЗАРЯДКА</button>
-            <button class="touch-button" data-touch-key="Digit1">AK-47</button>
-            <button class="touch-button" data-touch-key="Digit2">ПИСТОЛЕТ</button>
-            <button class="touch-button" data-touch-key="Digit3">НОЖ</button>
-          </div>
-          <button id="touch-pause-button" class="touch-pause-button" aria-label="Пауза">Ⅱ</button>
-        </div>
-        <div id="error-screen" class="error-screen hidden" role="alert">
-          <strong>GRAPHICS INITIALIZATION FAILED</strong>
-          <p id="error-message">Не удалось запустить графический движок.</p>
-          <button id="error-reload-button" class="secondary-button">ПЕРЕЗАГРУЗИТЬ СТРАНИЦУ</button>
-        </div>
-      </main>
-    </div>
-    <script type="module" src="./src/main.js"></script>
+    <div id="app"><div class="boot-screen"><div class="boot-mark">V</div><span>VEXA</span><i></i></div></div>
+    <script type="module" src="./src/vexa/main.js"></script>
   </body>
 </html>

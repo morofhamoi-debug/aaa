@@ -1,8 +1,9 @@
 import { readdir, readFile, access } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const root = resolve(new URL('../src/', import.meta.url).pathname);
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../src');
 const files = [];
 const missingImports = [];
 
@@ -22,12 +23,15 @@ for (const file of files) {
     process.exitCode = 1;
   }
   const source = await readFile(file, 'utf8');
-  for (const match of source.matchAll(/from\s+['"](..?\/[^'"]+)['"]/g)) {
-    const target = resolve(dirname(file), match[1]);
+  for (const match of source.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
+    const specifier = match[1];
+    if (!specifier.startsWith('.')) continue;
+    const target = resolve(dirname(file), specifier);
     try { await access(target); }
-    catch { missingImports.push(`${file}: ${match[1]}`); }
+    catch { missingImports.push(`${file}: ${specifier}`); }
   }
 }
+
 if (missingImports.length) {
   console.error('Unresolved relative imports:\n' + missingImports.join('\n'));
   process.exitCode = 1;
@@ -35,22 +39,27 @@ if (missingImports.length) {
 
 const html = await readFile(resolve(root, '../index.html'), 'utf8');
 const requiredHtml = [
-  'href="./src/styles/main.css"',
-  'href="./src/styles/mobile.css"',
-  'src="./src/main.js"',
-  'type="importmap"',
-  'id="touch-controls"',
-  'id="touch-joystick"',
-  'id="touch-look-zone"'
+  '<html lang="ru"',
+  'id="app"',
+  'src="./src/vexa/main.js"',
+  'href="./src/vexa/styles.css"',
+  'VEXA — Digital Collectibles'
 ];
 const htmlProblems = requiredHtml.filter((token) => !html.includes(token));
 if (htmlProblems.length) {
-  console.error('Missing HTML runtime requirements: ' + htmlProblems.join(', '));
+  console.error('Missing VEXA runtime requirements: ' + htmlProblems.join(', '));
   process.exitCode = 1;
 }
-if (html.includes('src="/src/main.js"') || html.includes('href="/src/')) {
-  console.error('Root-absolute source paths are not supported by project GitHub Pages URLs.');
+if (html.includes('src="/src/') || html.includes('href="/src/')) {
+  console.error('Root-absolute source paths are not supported by GitHub Pages project URLs.');
   process.exitCode = 1;
 }
+
+const packageJson = JSON.parse(await readFile(resolve(root, '../package.json'), 'utf8'));
+if (!packageJson.dependencies?.['@supabase/supabase-js'] || !packageJson.dependencies?.three) {
+  console.error('VEXA runtime dependencies are missing.');
+  process.exitCode = 1;
+}
+
 if (process.exitCode) process.exit(process.exitCode);
-console.log(`Syntax, relative imports and Pages/mobile HTML checks passed for ${files.length} JavaScript modules.`);
+console.log(`VEXA syntax, relative imports and Pages checks passed for ${files.length} JavaScript modules.`);
