@@ -452,3 +452,64 @@ img { max-width: 100%; display: block; }
   .chart-metrics strong { font-size:9px; }
   .candles-canvas { height:235px; }
 }
+
+
+
+/* VEXA mobile layout */
+.side-section-spaced{margin-top:20px}
+.hub-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.hub-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-height:145px;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--text);text-align:left}
+.hub-card-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--accent-soft);color:var(--accent);font-size:22px}
+.hub-card strong{font:700 14px Manrope,sans-serif}
+.hub-card small{color:var(--muted);font-size:11px;line-height:1.55}
+.hub-card-arrow{position:absolute;right:17px;top:18px;color:var(--muted);font-size:18px}
+.menu-hub-grid,.collections-page-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:980px){.hub-grid,.menu-hub-grid,.collections-page-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){
+.topbar{height:68px;padding:0 14px}.wordmark{font-size:17px}.wordmark-mark{width:36px;height:36px;font-size:21px}
+.balance-pill{min-width:108px;height:42px;padding:0 10px;font-size:13px}.balance-pill strong{font-size:13px}
+.icon-button,.avatar-button{width:40px;height:40px}.header-login{min-height:40px;font-size:13px}
+.app-layout{padding-top:68px;padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+.page-container{padding:22px 16px 24px}.mobile-nav{height:calc(78px + env(safe-area-inset-bottom));padding:9px 7px calc(8px + env(safe-area-inset-bottom));align-items:flex-start}
+.mobile-nav button{flex:1 1 0;min-width:0;min-height:54px;padding:6px 3px;gap:5px;justify-content:center}
+.mobile-nav button span{font-size:23px}.mobile-nav button small{font-size:10px;font-weight:700;white-space:nowrap}
+.hero-panel{min-height:410px;padding:30px 21px 70px}.hero-panel h1{font-size:clamp(34px,9vw,46px);line-height:1.12}
+.hero-panel p{font-size:14px;line-height:1.65}.hero-actions .button{width:100%;min-height:52px;font-size:15px}
+.metric-strip>div{min-height:80px;padding:14px}.metric-strip span{font-size:11px}.metric-strip strong{font-size:20px}
+.content-section{margin-top:29px}.section-header h2{font-size:20px}.section-header p{font-size:12px;line-height:1.5}
+.hub-grid,.menu-hub-grid,.collections-page-grid{grid-template-columns:1fr;gap:10px}
+.hub-card{min-height:108px;justify-content:center;padding:15px 48px 15px 73px;gap:6px}
+.hub-card-icon{position:absolute;left:15px;top:50%;width:44px;height:44px;transform:translateY(-50%)}
+.hub-card strong{font-size:15px}.hub-card small{font-size:12px}.hub-card-arrow{right:15px;top:50%;transform:translateY(-50%)}
+.page-heading{align-items:flex-start;margin-bottom:21px}.page-heading h1{font-size:35px;line-height:1.1}.page-heading p{font-size:13px;line-height:1.55}
+.heading-stat strong{font-size:24px}.heading-stat span{font-size:10px}
+.collection-grid,.nft-grid,.portfolio-grid{grid-template-columns:1fr;gap:12px}
+.collection-card{min-height:86px;padding:11px;gap:12px}.collection-art{width:56px;height:56px;flex-basis:56px}
+.collection-card strong{font-size:14px}.collection-card small{font-size:11px}
+.nft-art{height:225px}.nft-meta{padding:14px}.nft-meta h3{font-size:15px}.nft-card-bottom{min-height:60px;padding:12px 14px}
+.nft-card-bottom strong{font-size:14px}.muted-caption,.edition-badge,.rarity-tag{font-size:10px}
+.filter-panel{grid-template-columns:1fr;gap:10px;padding:12px}.search-field{grid-column:auto;min-height:50px}
+.search-field input,.form-stack input,.form-stack textarea{font-size:16px}
+.filter-panel select,.filter-panel>.button{min-height:49px;font-size:14px}
+.button{min-height:49px;padding:0 16px;font-size:14px}.button-small{min-height:43px;font-size:12px}
+.detail-info h1{font-size:33px}.detail-viewer{min-height:310px;height:350px}
+.portfolio-summary>div{min-height:86px;padding:13px}.portfolio-summary span{font-size:11px}.portfolio-summary strong{font-size:20px}
+.portfolio-art{height:205px}.portfolio-card-info{padding:13px}.portfolio-card-info strong{font-size:14px}
+.order-row{grid-template-columns:1fr auto;gap:9px;padding:13px}.order-row>div:nth-child(3){grid-column:1}
+.order-row>button{grid-column:2;grid-row:1/span 2;min-height:43px}
+.profile-layout,.admin-grid{grid-template-columns:1fr;gap:12px}.profile-card,.panel-card{padding:17px;border-radius:15px}
+.profile-card h2{font-size:21px}.profile-card p,.profile-card small,.profile-stat span,.profile-stat strong{font-size:12px}
+.panel-card h3{font-size:17px}.panel-card>p{font-size:13px;line-height:1.6}
+.form-stack{gap:14px}.form-stack label{font-size:13px;gap:8px}
+.form-stack input,.form-stack textarea{min-height:49px;padding:12px 13px;border-radius:11px}
+.form-stack textarea{min-height:100px}.form-stack small{font-size:11px}
+.notification-row{padding:14px;gap:12px}.notification-row strong{font-size:14px}.notification-row p{font-size:12px;line-height:1.55}
+.empty-state{min-height:185px;padding:21px 16px}.empty-state h3{font-size:17px}.empty-state p{font-size:13px;line-height:1.55}
+.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.admin-stats>div{min-height:86px;padding:12px}
+.admin-stats span{font-size:11px}.admin-stats strong{font-size:21px}
+.modal-backdrop{padding:12px;align-items:end}.modal-card{max-height:calc(92dvh - env(safe-area-inset-top));padding:25px 19px calc(22px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0}
+#toast{bottom:calc(92px + env(safe-area-inset-bottom));max-width:calc(100vw - 28px);font-size:12px}
+.site-footer{font-size:10px;line-height:1.45}
+}
+@media(max-width:380px){.page-container{padding-inline:12px}.balance-pill{min-width:96px;padding:0 8px}.mobile-nav button small{font-size:9px}}
+
