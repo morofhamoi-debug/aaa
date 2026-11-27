@@ -400,11 +400,14 @@ function render() {
   const currentPage = state.page;
   let pageContent = '';
   if (currentPage === 'home') pageContent = homePage();
+  else if (currentPage === 'collections') pageContent = collectionsPage();
   else if (currentPage === 'market') pageContent = marketPage();
   else if (currentPage === 'detail') pageContent = detailPage();
   else if (currentPage === 'portfolio') pageContent = portfolioPage();
   else if (currentPage === 'favorites') pageContent = favoritesPage();
-  else if (currentPage === 'activity') pageContent = activityPage();
+  else if (currentPage === 'orders' || currentPage === 'activity') pageContent = ordersPage();
+  else if (currentPage === 'trades') pageContent = tradesPage();
+  else if (currentPage === 'menu') pageContent = menuPage();
   else if (currentPage === 'profile') pageContent = profilePage();
   else if (currentPage === 'notifications') pageContent = notificationsPage();
   else if (currentPage === 'admin') pageContent = adminPage();
@@ -475,7 +478,7 @@ async function reloadAccountAndRender() {
 
 function navigate(page) {
   if (page === 'login') { openAuth('login'); return; }
-  if (['portfolio', 'favorites', 'activity', 'profile', 'notifications'].includes(page) && !state.user) {
+  if (['portfolio', 'favorites', 'orders', 'activity', 'profile', 'notifications'].includes(page) && !state.user) {
     openAuth('login'); return;
   }
   if (page === 'admin' && !state.admin) {
