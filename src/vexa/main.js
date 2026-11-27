@@ -4,7 +4,7 @@ import {
   getMyOrders, getTrades, getFavorites, setFavorite, getNotifications,
   markNotificationRead, getExchangeRate, getCandles, submitOrder, cancelOrder, checkAdmin,
   getAdminOverview, getAdminSettings, getAdminCatalog, getPublicStats, listAdminUsers, createCollection, createGiftType,
-  createVariant, adjustBalance, updateMarketSettings, uploadModel, subscribeToAuth,
+  createVariant, adjustBalance, updateMarketSettings, uploadModel, resendSignupConfirmation, subscribeToAuth,
   subscribeToMarket, supabase
 } from './api.js';
 import { mountGiftViewer } from './viewer.js';
@@ -62,7 +62,7 @@ function headerHTML() {
     ? `<button class="balance-pill" data-action="currency" ${rateValue() ? '' : 'disabled'} title="${esc(rateTitle)}">
         <span class="balance-currency">${moneyLabel()}</span><strong>${formatBalance(getBalance(), state.currency, rateValue())}</strong>
       </button>`
-    : '<button class="balance-pill guest-balance" data-action="login"><span>Войти</span><strong>в аккаунт</strong></button>';
+    : '<button class="balance-pill guest-balance" data-action="register" title="Создать аккаунт VEXA"><span>Новый участник</span><strong>Создать аккаунт</strong></button>';
   const account = signedIn
     ? `<button class="avatar-button" data-action="navigate" data-page="profile" aria-label="Профиль">${esc(initials(state.profile?.display_name || state.profile?.handle))}</button>`
     : '<button class="button button-dark header-login" data-action="login">Войти</button>';
@@ -70,8 +70,8 @@ function headerHTML() {
     <button class="wordmark" data-action="navigate" data-page="home" aria-label="VEXA — на главную"><span class="wordmark-mark">V</span><span>VEXA</span></button>
     <div class="topbar-right">
       ${balance}
-      <button class="icon-button theme-toggle" data-action="theme" aria-label="Переключить тему" title="Тема оформления">${state.theme === 'dark' ? '☼' : '☾'}</button>
-      <button class="icon-button notification-button" data-action="navigate" data-page="notifications" aria-label="Уведомления">♧${state.notifications.some((n) => !n.read_at) ? '<i></i>' : ''}</button>
+      <button class="icon-button theme-toggle ${signedIn ? '' : 'guest-hide-on-mobile'}" data-action="theme" aria-label="Переключить тему" title="Тема оформления">${state.theme === 'dark' ? '☼' : '☾'}</button>
+      <button class="icon-button notification-button ${signedIn ? '' : 'guest-hide-on-mobile'}" data-action="navigate" data-page="notifications" aria-label="Уведомления">♧${state.notifications.some((n) => !n.read_at) ? '<i></i>' : ''}</button>
       ${account}
     </div>
   </header>`;
@@ -163,37 +163,49 @@ function sectionHeader(title, subtitle = '', action = '') {
 function homePage() {
   const signedIn = Boolean(state.user);
   const shortcuts = [
-    { id: 'collections', icon: '▧', title: 'Коллекции', desc: 'Смотри все опубликованные серии' },
-    { id: 'market', icon: '◈', title: 'Маркет', desc: 'Ищи подарки и предложения' },
+    { id: 'collections', icon: '▧', title: 'Коллекции', desc: 'Знакомься с сериями и их предметами' },
+    { id: 'market', icon: '◈', title: 'Маркет', desc: 'Сравнивай предложения и редкость' },
     ...(signedIn ? [
-      { id: 'portfolio', icon: '▦', title: 'Мой портфель', desc: 'Твои цифровые экземпляры' },
-      { id: 'orders', icon: '⇄', title: 'Мои ордера', desc: 'Заявки и их статусы' }
+      { id: 'portfolio', icon: '▦', title: 'Мой портфель', desc: 'Все твои цифровые экземпляры' },
+      { id: 'orders', icon: '⇄', title: 'Мои ордера', desc: 'Заявки и их текущие статусы' }
     ] : [
-      { id: 'login', icon: '◉', title: 'Мой аккаунт', desc: 'Войти или создать аккаунт' }
+      { id: 'register', icon: '＋', title: 'Создать аккаунт', desc: 'Сохрани профиль и начни собирать' }
     ])
   ];
   return `<section class="hero-panel home-hero">
       <div class="hero-copy"><span class="eyebrow hero-eyebrow"><i></i> ЦИФРОВАЯ ПЛОЩАДКА VEXA</span>
-        <h1>Твоя коллекция.<br><em>Твой рынок.</em></h1>
-        <p>Покупай, собирай и отслеживай цифровые подарки в едином пространстве.</p>
-        <div class="hero-actions"><button class="button button-primary" data-action="navigate" data-page="market">Открыть маркет <span>↗</span></button><span class="hero-note">Тестовая внутренняя экономика · реальные платежи отключены</span></div>
+        <h1>Цифровые подарки.<br><em>Твой личный рынок.</em></h1>
+        <p>Изучай коллекции, сравнивай редкость, собирай цифровые экземпляры и следи за своей активностью в одном месте.</p>
+        <div class="hero-actions">
+          <button class="button button-primary" data-action="${signedIn ? 'navigate' : 'register'}" data-page="market">${signedIn ? 'Открыть маркет' : 'Создать аккаунт'} <span>↗</span></button>
+          ${signedIn ? '<span class="hero-note">Ты уже в VEXA — выбери коллекцию или открой маркет.</span>' : '<button class="button button-outline hero-secondary" data-action="login">У меня уже есть аккаунт</button>'}
+        </div>
+        <span class="hero-note hero-demo-note">Демо-режим: без реальных платежей, пополнений и вывода средств.</span>
       </div>
       <div class="hero-object" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="hero-gem"><span>V</span></div><div class="hero-glow"></div><div class="hero-coordinate">VEXA / 001</div></div>
     </section>
     <section class="metric-strip">
-      <div><span>Коллекции</span><strong>${state.publicStats.collections.toLocaleString('ru-RU')}</strong></div>
-      <div><span>Варианты NFT</span><strong>${state.publicStats.variants.toLocaleString('ru-RU')}</strong></div>
-      <div><span>Завершённые сделки</span><strong>${state.publicStats.trades.toLocaleString('ru-RU')}</strong></div>
+      <div><span>Опубликовано коллекций</span><strong>${state.publicStats.collections.toLocaleString('ru-RU')}</strong></div>
+      <div><span>Вариантов предметов</span><strong>${state.publicStats.variants.toLocaleString('ru-RU')}</strong></div>
+      <div><span>Завершённых сделок</span><strong>${state.publicStats.trades.toLocaleString('ru-RU')}</strong></div>
       <div><span>Реальные платежи</span><strong>Отключены</strong></div>
     </section>
     <section class="content-section home-shortcuts">
-      ${sectionHeader('Быстрый доступ', 'Каждая функция находится в своём отдельном разделе')}
-      <div class="hub-grid">${shortcuts.map((item) => `<button class="hub-card" data-action="${item.id === 'login' ? 'login' : 'navigate'}" data-page="${item.id}">
+      ${sectionHeader('Быстрый доступ', 'Выбирай отдельный раздел — в нём собраны все нужные инструменты')}
+      <div class="hub-grid">${shortcuts.map((item) => `<button class="hub-card" data-action="${item.id === 'register' ? 'register' : 'navigate'}" data-page="${item.id}">
         <span class="hub-card-icon">${item.icon}</span><strong>${item.title}</strong><small>${item.desc}</small><span class="hub-card-arrow">↗</span>
       </button>`).join('')}</div>
     </section>
+    <section class="content-section onboarding-section">
+      ${sectionHeader('Как начать пользоваться VEXA', 'Три шага — и ты разберёшься в основных возможностях площадки')}
+      <div class="onboarding-grid">
+        <article class="onboarding-card"><span class="onboarding-number">01</span><div><h3>Создай аккаунт</h3><p>Укажи почту, придумай имя пользователя и пароль. Подтверди адрес по письму, если подтверждение включено.</p></div></article>
+        <article class="onboarding-card"><span class="onboarding-number">02</span><div><h3>Изучи коллекции</h3><p>Открой маркет, посмотри описание предметов, их редкость, тираж и доступные предложения.</p></div></article>
+        <article class="onboarding-card"><span class="onboarding-number">03</span><div><h3>Следи за портфелем</h3><p>В личных разделах будут отображаться твои экземпляры NFT, заявки, избранное и история сделок.</p></div></article>
+      </div>
+    </section>
     <section class="content-section home-note">
-      <div class="panel-card"><span class="eyebrow">ВАЖНО</span><h3>Внутренняя экономика</h3><p>Баланс VEXA — тестовые единицы внутри площадки. Их нельзя пополнять реальными деньгами или выводить. Стартовый баланс нового аккаунта — 0.</p></div>
+      <div class="panel-card"><span class="eyebrow">ВАЖНО ЗНАТЬ</span><h3>Сейчас VEXA работает в демо-режиме</h3><p>Новый аккаунт получает нулевой внутренний баланс. Внутренние единицы нужны только для тестирования механики площадки: они не являются деньгами. Реальное пополнение, вывод и блокчейн-операции не подключены.</p></div>
     </section>`;
 }
 function marketPage() {
@@ -350,7 +362,7 @@ function notificationsPage() {
 }
 
 function authRequiredPage() {
-  return `<section class="auth-required">${emptyState('Нужен аккаунт VEXA', 'Войди или зарегистрируйся, чтобы увидеть баланс и портфель.', '<button class="button button-primary" data-action="login">Войти / создать аккаунт</button>')}</section>`;
+  return `<section class="auth-required">${emptyState('Личный кабинет пока закрыт', 'Создай аккаунт или войди, чтобы пользоваться портфелем, избранным и ордерами.', '<div class="auth-required-actions"><button class="button button-primary" data-action="register">Создать аккаунт</button><button class="button button-outline" data-action="login">У меня уже есть аккаунт</button></div>')}</section>`;
 }
 
 function adminPage() {
@@ -372,21 +384,49 @@ function adminPage() {
 
 function modalHTML() {
   if (!state.modal) return '';
+  if (state.modal.type === 'signup-success') {
+    const email = esc(state.modal.email || '');
+    return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card auth-modal signup-success-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="event.stopPropagation()">
+      <button class="modal-close" data-action="close-modal" aria-label="Закрыть">×</button>
+      <div class="signup-success-icon">✓</div><span class="eyebrow">VEXA / ПОЧТА</span>
+      <h2 id="modal-title">Проверь свою почту</h2>
+      <p class="auth-description">Для завершения регистрации подтверди адрес электронной почты.</p>
+      <div class="confirmation-address"><span>Письмо для подтверждения</span><strong>${email}</strong></div>
+      <div class="confirmation-steps">
+        <div><b>1</b><span>Открой письмо от Supabase в почте.</span></div>
+        <div><b>2</b><span>Нажми на ссылку подтверждения.</span></div>
+        <div><b>3</b><span>Вернись на VEXA и войди в аккаунт.</span></div>
+      </div>
+      <button class="button button-primary full-width" data-action="resend-confirmation">Отправить письмо ещё раз</button>
+      <button class="button button-outline full-width confirmation-login" data-action="auth-mode" data-mode="login">Я подтвердил почту — войти</button>
+      <div class="auth-legal">Не видишь письмо? Проверь папку «Спам». Повторная отправка может быть ограничена.</div>
+    </section></div>`;
+  }
   if (state.modal.type === 'auth') {
     const mode = state.modal.mode || 'login';
     const register = mode === 'register';
     const forgot = mode === 'forgot';
+    const title = register ? 'Создай аккаунт VEXA' : forgot ? 'Восстановление пароля' : 'Вход в VEXA';
+    const description = register
+      ? 'Регистрация бесплатная. После создания профиля ты сможешь сохранять избранное и пользоваться личными разделами.'
+      : forgot
+        ? 'Укажи почту, привязанную к аккаунту. Мы отправим ссылку для восстановления доступа.'
+        : 'Войди, чтобы открыть свой портфель, заявки и настройки профиля.';
     return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card auth-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="event.stopPropagation()">
-      <button class="modal-close" data-action="close-modal" aria-label="Закрыть">×</button><span class="eyebrow">WELCOME TO VEXA</span><h2 id="modal-title">${register ? 'Создать аккаунт' : forgot ? 'Восстановить пароль' : 'С возвращением'}</h2><p>${register ? 'Твой профиль и пустой виртуальный кошелёк будут созданы после регистрации.' : forgot ? 'Отправим ссылку для восстановления доступа на почту.' : 'Войди, чтобы управлять коллекцией и балансом.'}</p>
-      ${forgot ? `<form id="forgot-form" class="form-stack"><label>Email<input name="email" type="email" autocomplete="email" required></label><button class="button button-primary full-width" type="submit">Отправить ссылку</button></form>` : `<form id="auth-form" class="form-stack">
-        ${register ? '<label>Имя пользователя<input name="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="username" required><small>3–24 символа: латиница, цифры и _</small></label><label>Отображаемое имя<input name="display_name" maxlength="60" autocomplete="nickname" placeholder="Как тебя показывать"></label>' : ''}
-        <label>Электронная почта<input name="email" type="email" autocomplete="email" required></label>
-        <label>Пароль<input name="password" type="password" minlength="8" autocomplete="${register ? 'new-password' : 'current-password'}" required></label>
-        ${register ? '<label>Повтори пароль<input name="password_repeat" type="password" minlength="8" autocomplete="new-password" required></label><label class="checkbox-label"><input name="agreement" type="checkbox" required><span>Принимаю правила VEXA и политику конфиденциальности.</span></label>' : ''}
-        <button class="button button-primary full-width" type="submit">${register ? 'Зарегистрироваться' : 'Войти'}</button></form>`}
-      <div class="auth-switch">${register ? 'Уже есть аккаунт?' : 'Нет аккаунта?'} <button class="text-action" data-action="auth-mode" data-mode="${register ? 'login' : 'register'}">${register ? 'Войти' : 'Создать аккаунт'}</button></div>
+      <button class="modal-close" data-action="close-modal" aria-label="Закрыть">×</button>
+      <span class="eyebrow">${register ? 'VEXA / РЕГИСТРАЦИЯ' : forgot ? 'VEXA / ВОССТАНОВЛЕНИЕ' : 'VEXA / АККАУНТ'}</span>
+      <h2 id="modal-title">${title}</h2><p class="auth-description">${description}</p>
+      ${register ? '<div class="auth-progress"><span class="auth-progress-active">Профиль</span><i></i><span>Подтверждение почты</span><i></i><span>Готово</span></div>' : ''}
+      ${forgot ? `<form id="forgot-form" class="form-stack"><label><span>Электронная почта</span><input name="email" type="email" autocomplete="email" placeholder="name@example.com" required></label><button class="button button-primary full-width" type="submit">Отправить ссылку</button></form>` : `<form id="auth-form" class="form-stack">
+        ${register ? '<label><span>Имя пользователя</span><input name="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="username" placeholder="Например, vexa_user" required><small>3–24 символа: латинские буквы, цифры и знак _.</small></label><label><span>Отображаемое имя</span><input name="display_name" maxlength="60" autocomplete="nickname" placeholder="Как тебя будут видеть другие"></label>' : ''}
+        <label><span>Электронная почта</span><input name="email" type="email" autocomplete="email" placeholder="name@example.com" required></label>
+        <label><span>Пароль</span><input name="password" type="password" minlength="8" autocomplete="${register ? 'new-password' : 'current-password'}" placeholder="${register ? 'Не менее 8 символов' : 'Введи свой пароль'}" required>${register ? '<small>Используй пароль длиной от 8 символов.</small>' : ''}</label>
+        ${register ? '<label><span>Повтори пароль</span><input name="password_repeat" type="password" minlength="8" autocomplete="new-password" placeholder="Введи пароль ещё раз" required></label><label class="checkbox-label"><input name="agreement" type="checkbox" required><span>Я понимаю, что VEXA сейчас работает в демо-режиме: внутренний баланс не имеет денежной стоимости, реальные пополнения и вывод отключены.</span></label>' : ''}
+        <button class="button button-primary full-width auth-submit" type="submit">${register ? 'Создать аккаунт' : 'Войти в аккаунт'}</button>
+      </form>`}
+      <div class="auth-switch">${register ? 'Уже зарегистрирован?' : 'Ещё нет аккаунта?'} <button class="text-action" data-action="auth-mode" data-mode="${register ? 'login' : 'register'}">${register ? 'Войти' : 'Создать аккаунт'}</button></div>
       ${!register && !forgot ? '<button class="forgot-link" data-action="auth-mode" data-mode="forgot">Забыли пароль?</button>' : ''}
-      <div class="auth-legal">VEXA использует внутренние виртуальные единицы. Они не являются реальными деньгами.</div>
+      <div class="auth-legal">Твои данные используются для работы профиля VEXA. Не передавай пароль другим людям.</div>
     </section></div>`;
   }
   if (state.modal.type === 'sell') {
@@ -552,6 +592,13 @@ async function handleClick(event) {
   try {
     if (action === 'navigate') navigate(target.dataset.page);
     else if (action === 'login') openAuth('login');
+    else if (action === 'register') openAuth('register');
+    else if (action === 'resend-confirmation') {
+      const email = state.modal?.email;
+      if (!email) throw new Error('Не удалось определить адрес электронной почты');
+      await resendSignupConfirmation(email);
+      toast('Письмо для подтверждения отправлено повторно');
+    }
     else if (action === 'close-modal') { state.modal = null; render(); }
     else if (action === 'auth-mode') openAuth(target.dataset.mode);
     else if (action === 'theme') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('vexa-theme', state.theme); render(); }
@@ -623,7 +670,13 @@ async function handleSubmit(event) {
   event.preventDefault();
   const fd = new FormData(form);
   const button = form.querySelector('button[type="submit"]');
-  if (button) { button.disabled = true; button.classList.add('loading'); }
+  const originalButtonText = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.classList.add('loading');
+    if (form.id === 'auth-form' && state.modal?.mode === 'register') button.textContent = 'Создаём аккаунт…';
+    else if (form.id === 'auth-form') button.textContent = 'Выполняем вход…';
+  }
   try {
     if (id === 'market-search-form') {
       state.catalogSearch = String(fd.get('search') || '').trim();
@@ -639,10 +692,17 @@ async function handleSubmit(event) {
         if (password !== repeated) throw new Error('Пароли не совпадают');
         if (!fd.get('agreement')) throw new Error('Необходимо принять правила платформы');
         const result = await signUp({ email, password, username, displayName: String(fd.get('display_name') || username).trim() });
-        state.modal = null;
-        toast(result.session ? 'Аккаунт создан' : 'Проверь почту и подтверди адрес, чтобы войти');
-        if (result.session) state.session = result.session;
-        await refreshAll();
+        if (result.session) {
+          state.session = result.session;
+          state.user = result.user || result.session.user;
+          state.modal = null;
+          await refreshAll();
+          toast('Аккаунт создан. Добро пожаловать в VEXA!');
+        } else {
+          state.modal = { type: 'signup-success', email: email.trim().toLowerCase() };
+          render();
+          toast('Почти готово — подтверди почту');
+        }
       } else {
         const result = await signIn(email, password);
         state.session = result.session; state.user = result.user; state.modal = null;
@@ -719,7 +779,11 @@ async function handleSubmit(event) {
   } catch (error) {
     toast(error.message, 'error');
   } finally {
-    if (button?.isConnected) { button.disabled = false; button.classList.remove('loading'); }
+    if (button?.isConnected) {
+      button.disabled = false;
+      button.classList.remove('loading');
+      if (originalButtonText) button.textContent = originalButtonText;
+    }
   }
 }
 
