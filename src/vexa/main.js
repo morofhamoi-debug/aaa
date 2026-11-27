@@ -78,16 +78,23 @@ function headerHTML() {
 }
 
 function sidebarHTML() {
-  const nav = [
+  const primary = [
     { id: 'home', label: 'Обзор', icon: '⌂' },
-    { id: 'market', label: 'Маркет', icon: '◈' },
+    { id: 'collections', label: 'Коллекции', icon: '▧' },
+    { id: 'market', label: 'Маркет', icon: '◈' }
+  ];
+  const personal = [
     { id: 'favorites', label: 'Избранное', icon: '♡', auth: true },
-    { id: 'portfolio', label: 'Портфель', icon: '▦', auth: true },
-    { id: 'activity', label: 'История', icon: '↗', auth: true }
+    { id: 'portfolio', label: 'Мой портфель', icon: '▦', auth: true },
+    { id: 'orders', label: 'Мои ордера', icon: '⇄', auth: true },
+    { id: 'trades', label: 'История сделок', icon: '↗' },
+    { id: 'notifications', label: 'Уведомления', icon: '♧', auth: true }
   ];
   return `<aside class="sidebar">
-    <div class="side-section-label">ПЛОЩАДКА</div>
-    ${nav.filter((item) => !item.auth || state.user).map(navButton).join('')}
+    <div class="side-section-label">НАВИГАЦИЯ</div>
+    ${primary.map(navButton).join('')}
+    <div class="side-section-label side-section-spaced">МОЯ ПЛОЩАДКА</div>
+    ${personal.filter((item) => !item.auth || state.user).map(navButton).join('')}
     <div class="sidebar-spacer"></div>
     <div class="side-section-label">АККАУНТ</div>
     ${state.user ? navButton({ id: 'profile', label: 'Профиль', icon: '◉' }) : '<button class="nav-link" data-action="login"><span class="nav-icon">◉</span><span>Войти / создать</span></button>'}
@@ -95,7 +102,6 @@ function sidebarHTML() {
     <div class="sidebar-foot"><span class="online-dot"></span> Внутренняя экономика VEXA</div>
   </aside>`;
 }
-
 function mobileNavHTML() {
   const items = [
     { id: 'home', label: 'Главная', icon: '⌂' },
