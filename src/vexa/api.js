@@ -16,6 +16,10 @@ function normalizeError(error) {
   if (/Invalid login credentials/i.test(message)) return new Error('Неверная почта или пароль');
   if (/User already registered/i.test(message)) return new Error('Этот адрес уже зарегистрирован');
   if (/Password should be at least/i.test(message)) return new Error('Пароль должен содержать не менее 8 символов');
+  if (/Email not confirmed/i.test(message)) return new Error('Сначала подтверди адрес электронной почты по ссылке из письма');
+  if (/Invalid email/i.test(message)) return new Error('Проверь правильность адреса электронной почты');
+  if (/email rate limit exceeded|too many requests/i.test(message)) return new Error('Слишком много попыток. Подожди немного и попробуй снова');
+  if (/redirect.*not allowed|not a valid redirect/i.test(message)) return new Error('Адрес возврата VEXA не разрешён в настройках Supabase Auth');
   if (/duplicate key|market_profiles_handle_key/i.test(message)) return new Error('Это имя пользователя уже занято');
   if (/Failed to fetch|NetworkError/i.test(message)) return new Error('Нет соединения с сервером. Проверьте интернет и повторите попытку.');
   return new Error(message);
@@ -53,6 +57,17 @@ export async function signUp({ email, password, username, displayName }) {
   });
   if (error) throw normalizeError(error);
   return data;
+}
+
+export async function resendSignupConfirmation(email) {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email.trim().toLowerCase(),
+    options: {
+      emailRedirectTo: window.location.origin + window.location.pathname
+    }
+  });
+  if (error) throw normalizeError(error);
 }
 
 export async function signIn(email, password) {
