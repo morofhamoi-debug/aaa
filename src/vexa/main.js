@@ -161,38 +161,41 @@ function sectionHeader(title, subtitle = '', action = '') {
 }
 
 function homePage() {
-  const totalAssets = state.publicStats.variants;
-  const totalCollections = state.publicStats.collections;
-  const recent = state.trades.slice(0, 5);
-  return `<section class="hero-panel">
-      <div class="hero-copy"><span class="eyebrow hero-eyebrow"><i></i> DIGITAL COLLECTIBLES MARKET</span>
-        <h1>Цифровые подарки.<br><em>Новый уровень</em> коллекции.</h1>
-        <p>Открывай редкости, собирай уникальные экземпляры и следи за реальными сделками внутри VEXA.</p>
-        <div class="hero-actions"><button class="button button-primary" data-action="navigate" data-page="market">Исследовать маркет <span>↗</span></button><span class="hero-note">Внутренняя тестовая экономика · без реальных платежей</span></div>
+  const signedIn = Boolean(state.user);
+  const shortcuts = [
+    { id: 'collections', icon: '▧', title: 'Коллекции', desc: 'Смотри все опубликованные серии' },
+    { id: 'market', icon: '◈', title: 'Маркет', desc: 'Ищи подарки и предложения' },
+    ...(signedIn ? [
+      { id: 'portfolio', icon: '▦', title: 'Мой портфель', desc: 'Твои цифровые экземпляры' },
+      { id: 'orders', icon: '⇄', title: 'Мои ордера', desc: 'Заявки и их статусы' }
+    ] : [
+      { id: 'login', icon: '◉', title: 'Мой аккаунт', desc: 'Войти или создать аккаунт' }
+    ])
+  ];
+  return `<section class="hero-panel home-hero">
+      <div class="hero-copy"><span class="eyebrow hero-eyebrow"><i></i> ЦИФРОВАЯ ПЛОЩАДКА VEXA</span>
+        <h1>Твоя коллекция.<br><em>Твой рынок.</em></h1>
+        <p>Покупай, собирай и отслеживай цифровые подарки в едином пространстве.</p>
+        <div class="hero-actions"><button class="button button-primary" data-action="navigate" data-page="market">Открыть маркет <span>↗</span></button><span class="hero-note">Тестовая внутренняя экономика · реальные платежи отключены</span></div>
       </div>
       <div class="hero-object" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="hero-gem"><span>V</span></div><div class="hero-glow"></div><div class="hero-coordinate">VEXA / 001</div></div>
-      <div class="hero-bottom"><span>01 — Цифровые коллекции</span><span>02 — Внутренний маркет</span><span>03 — Собственный портфель</span></div>
     </section>
     <section class="metric-strip">
-      <div><span>Коллекции опубликованы</span><strong>${totalCollections.toLocaleString('ru-RU')}</strong></div>
-      <div><span>Варианты NFT</span><strong>${totalAssets.toLocaleString('ru-RU')}</strong></div>
+      <div><span>Коллекции</span><strong>${state.publicStats.collections.toLocaleString('ru-RU')}</strong></div>
+      <div><span>Варианты NFT</span><strong>${state.publicStats.variants.toLocaleString('ru-RU')}</strong></div>
       <div><span>Завершённые сделки</span><strong>${state.publicStats.trades.toLocaleString('ru-RU')}</strong></div>
       <div><span>Реальные платежи</span><strong>Отключены</strong></div>
     </section>
-    <section class="content-section">
-      ${sectionHeader('Новые коллекции', 'Публикации из базы данных VEXA', '<button class="text-action" data-action="navigate" data-page="market">Все коллекции ↗</button>')}
-      ${state.collections.length ? `<div class="collection-grid">${state.collections.slice(0, 4).map((collection) => `<button class="collection-card" data-action="collection" data-id="${collection.id}"><div class="collection-art">${collection.cover_url ? `<img src="${esc(safeUrl(collection.cover_url))}" alt="" loading="lazy">` : '<span>V.</span>'}</div><div><strong>${esc(collection.name)}</strong><small>${esc(collection.slug)}</small></div><span>↗</span></button>`).join('')}</div>` : emptyState('Пока нет коллекций', 'Когда администратор опубликует первую коллекцию, она появится здесь.', state.admin ? '<button class="button button-dark" data-action="navigate" data-page="admin">Открыть админ-панель</button>' : '')}
+    <section class="content-section home-shortcuts">
+      ${sectionHeader('Быстрый доступ', 'Каждая функция находится в своём отдельном разделе')}
+      <div class="hub-grid">${shortcuts.map((item) => `<button class="hub-card" data-action="${item.id === 'login' ? 'login' : 'navigate'}" data-page="${item.id}">
+        <span class="hub-card-icon">${item.icon}</span><strong>${item.title}</strong><small>${item.desc}</small><span class="hub-card-arrow">↗</span>
+      </button>`).join('')}</div>
     </section>
-    <section class="content-section">
-      ${sectionHeader('Недавно добавленные', 'Только опубликованные варианты из каталога', '<button class="text-action" data-action="navigate" data-page="market">Открыть маркет ↗</button>')}
-      ${state.variants.length ? `<div class="nft-grid">${state.variants.slice(0, 4).map(variantCard).join('')}</div>` : emptyState('Каталог пока пуст', 'NFT появятся после публикации администратором. VEXA не показывает демонстрационные предметы и фальшивую активность.')}
-    </section>
-    <section class="content-section">
-      ${sectionHeader('Последние сделки', 'Сведения только о фактически завершённых сделках')}
-      ${recent.length ? `<div class="activity-table">${recent.map((trade) => tradeRow(trade)).join('')}</div>` : emptyState('Сделок пока нет', 'История будет обновляться после реальной торговли пользователей.')}
+    <section class="content-section home-note">
+      <div class="panel-card"><span class="eyebrow">ВАЖНО</span><h3>Внутренняя экономика</h3><p>Баланс VEXA — тестовые единицы внутри площадки. Их нельзя пополнять реальными деньгами или выводить. Стартовый баланс нового аккаунта — 0.</p></div>
     </section>`;
 }
-
 function marketPage() {
   const rarities = [...new Set(state.variants.map((asset) => asset.rarity).filter(Boolean))].sort();
   const variants = [...state.variants];
