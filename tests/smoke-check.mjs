@@ -75,11 +75,15 @@ assert.ok(css.includes(":active"), "Missing button pressed state");
 assert.ok(app.includes("async function requireUser()"), "Missing Supabase session restoration");
 assert.ok(app.includes('empty("sparkles", "Здесь пока пусто"'), "Missing requested empty NFT state");
 assert.ok(!app.includes("state.user.app_metadata"), "Unsafe app_metadata access remains");
+assert.equal(app.split("state.user.id").length - 1, 1, "Direct state.user.id access remains outside the session helper");
 assert.ok(app.includes("const appMetadata = user.app_metadata || {}"), "App metadata is not null-safe");
 assert.ok(app.includes("function svgIcon(name"), "SVG outline icon helper missing");
 assert.ok(html.includes('<svg class="svg-icon"'), "Navigation icons are not SVG");
 assert.ok(css.includes(".svg-icon {"), "SVG outline styles missing");
 assert.ok(css.includes(".arrow::after"), "SVG chevron style missing");
+const runtimeAfterIconMap = app.slice(app.indexOf("function hapticImpact"));
+assert.doesNotMatch(runtimeAfterIconMap, /[✧✈⛔⌕↔≡⚠◐♧⌁◉ⓘ⬡♙▣◈▤▥★›‹✦▦⚙]/u,
+  "A Unicode pictogram is still used instead of an SVG outline");
 const nftRenderer = app.slice(app.indexOf("async function renderMyNft"), app.indexOf("function openInventory"));
 assert.ok(nftRenderer.includes("const user = await requireUser()"), "NFT renderer does not restore user session");
 assert.ok(nftRenderer.includes('"Здесь пока пусто"'), "NFT empty state text is missing");
