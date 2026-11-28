@@ -218,7 +218,7 @@ function marketPage() {
     </section>
     <section class="market-results">
       <div class="results-line"><span>${variants.length} предметов</span></div>
-      ${variants.length ? `<div class="nft-grid">${variants.map(variantCard).join('')}</div>${state.catalogHasMore ? '<div class="load-more-wrap"><button class="button button-outline" data-action="load-more">Показать ещё</button></div>' : ''}` : emptyState('Пока нет подходящих предметов', 'Измени параметры фильтра или попробуй другой запрос.')}
+      ${variants.length ? `<div class="nft-grid">${variants.map(variantCard).join('')}</div>${state.catalogHasMore ? `<div class="load-more-wrap"><button class="button button-outline" data-action="load-more" ${state.catalogLoadingMore ? 'disabled' : ''}>${state.catalogLoadingMore ? 'Загружаем…' : 'Показать ещё'}</button></div>` : ''}` : emptyState('Пока нет подходящих предметов', 'Измени параметры фильтра или попробуй другой запрос.')}
     </section>
   </section>`;
 }
@@ -423,6 +423,18 @@ function modalHTML() {
       <div class="auth-legal">Твои данные используются для работы профиля VEXA. Не передавай пароль другим людям.</div>
     </section></div>`;
   }
+  if (state.modal.type === 'password-reset') {
+    return `<div class="modal-backdrop"><section class="modal-card auth-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" data-action="close-modal" aria-label="Закрыть">${svgIcon('close',18)}</button>
+      <span class="eyebrow">VEXA / БЕЗОПАСНОСТЬ</span><h2 id="modal-title">Новый пароль</h2>
+      <p class="auth-description">Придумай новый пароль для своего аккаунта.</p>
+      <form id="password-reset-form" class="form-stack">
+        <label><span>Новый пароль</span><input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
+        <label><span>Повтори пароль</span><input name="password_repeat" type="password" minlength="8" autocomplete="new-password" required></label>
+        <button class="button button-primary full-width" type="submit">Сохранить пароль</button>
+      </form>
+    </section></div>`;
+  }
   if (state.modal.type === 'sell') {
     return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card" role="dialog" aria-modal="true" onclick="event.stopPropagation()"><button class="modal-close" data-action="close-modal" aria-label="Закрыть">${svgIcon('close',18)}</button><span class="eyebrow">CREATE SELL ORDER</span><h2>Выставить NFT</h2><p>Укажи цену, по которой хочешь выставить предмет.</p><form id="sell-form" class="form-stack"><input type="hidden" name="collectible_id" value="${state.modal.collectibleId}"><label>Цена предложения<input name="price" type="number" min="1" step="1" required></label><button class="button button-primary full-width" type="submit">Выставить на продажу</button></form></section></div>`;
   }
@@ -599,6 +611,7 @@ async function handleClick(event) {
     }
     else if (action === 'close-modal') { state.modal = null; render(); }
     else if (action === 'auth-mode') openAuth(target.dataset.mode);
+    else if (action === 'load-more') { if (!state.catalogLoadingMore && state.catalogHasMore) await loadCatalog({ append: true }); }
     else if (action === 'toggle-filters') { state.filtersOpen = !state.filtersOpen; render(); }
     else if (action === 'theme') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('vexa-theme', state.theme); render(); }
     else if (action === 'currency') {
@@ -711,6 +724,13 @@ async function handleSubmit(event) {
     } else if (id === 'forgot-form') {
       await sendPasswordReset(String(fd.get('email') || ''));
       state.modal = null; render(); toast('Ссылка восстановления отправлена на почту');
+    } else if (id === 'password-reset-form') {
+      const password = String(fd.get('password') || '');
+      const repeated = String(fd.get('password_repeat') || '');
+      if (password.length < 8) throw new Error('Пароль должен содержать минимум 8 символов');
+      if (password !== repeated) throw new Error('Пароли не совпадают');
+      await updatePassword(password);
+      state.modal = null; render(); toast('Пароль успешно изменён');
     } else if (id === 'sell-form') {
       const collectibleId = String(fd.get('collectible_id'));
       const price = Number(fd.get('price'));
@@ -882,10 +902,14 @@ async function initialize() {
     showStartupFallback(error);
   }
 
-  subscribeToAuth(async (session) => {
+  subscribeToAuth(async (event, session) => {
     const previous = state.user?.id;
     state.session = session;
     state.user = session?.user || null;
+    if (event === 'PASSWORD_RECOVERY') {
+      state.modal = { type: 'password-reset' };
+      render();
+    }
     if (previous !== state.user?.id) {
       try { await loadAccount(); render(); } catch (error) { toast(error.message, 'error'); }
     }
