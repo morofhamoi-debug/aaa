@@ -86,3 +86,17 @@ In Supabase Authentication settings, configure the site URL and redirect allowli
 - Model uploads are restricted to administrator users and the `models/` storage folder.
 - Trading requests derive the actor from the verified Supabase session, not from a browser-supplied user id.
 - The project has no real-money or blockchain integration.
+
+
+## Telegram Mini App sign-in
+
+VEXA supports email sign-in and Telegram Mini App sign-in. Telegram identity data is accepted only from the signed `Telegram.WebApp.initData` payload. The `telegram-auth` Edge Function verifies Telegram's HMAC signature and the `auth_date` freshness before creating or reusing a Supabase user. Telegram IDs are stored in `market_telegram_accounts`, a table accessible only to the server role. The profile uses the Telegram display name, username and profile photo.
+
+### Connect your bot
+
+1. Create the bot in **@BotFather** and create/configure its Mini App. Set the Mini App URL to `https://morofhamoi-debug.github.io/aaa/`.
+2. In Supabase Dashboard open **Edge Functions → Secrets** and add `TELEGRAM_BOT_TOKEN` with the token from BotFather. Never put this token in frontend code or GitHub.
+3. In `src/vexa/config.js`, set `telegramBotUsername` to the bot username without the leading `@`.
+4. Open VEXA from the bot's Mini App button in Telegram. Telegram authentication is not available from an ordinary browser tab because the browser does not provide signed Mini App data.
+
+The email login and registration flow remains available separately.
