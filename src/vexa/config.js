@@ -3,6 +3,8 @@ export const VEXA = Object.freeze({
   supabaseUrl: 'https://jdcypiuvykyfqfyllsji.supabase.co',
   publishableKey: 'sb_publishable_IcJxkmFEWoStId92rWR_jA_Kv09UfgF',
   marketFunction: 'market-api',
+  telegramAuthFunction: 'telegram-auth',
+  telegramBotUsername: '',
   storageBucket: 'market-assets',
   modelMaxBytes: 25 * 1024 * 1024,
   pageSize: 48
