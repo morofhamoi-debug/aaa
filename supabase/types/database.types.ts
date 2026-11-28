@@ -784,6 +784,10 @@ export type Database = {
         Args: { p_actor_id: string; p_notification_id: string }
         Returns: boolean
       }
+      market_resolve_admin_telegram: {
+        Args: { p_telegram_id: string }
+        Returns: string
+      }
       market_submit_order: {
         Args: {
           p_actor_id: string
