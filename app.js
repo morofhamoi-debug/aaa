@@ -789,7 +789,7 @@
       (Number(settings.commission_bps || 0) / 100).toFixed(2).replace(".", ",") + "%</strong></div>" +
       '<button class="button ' + (settings.trading_enabled ? "danger" : "primary") + ' full" type="button" data-action="toggle-trading" data-enabled="' +
       (!settings.trading_enabled) + '">' + (settings.trading_enabled ? "Приостановить торги" : "Возобновить торги") + "</button></div>" +
-      '<div class="helper">Приостановка блокирует новые сделки. Уже созданные заявки останутся в системе до отмены или истечения срока.</div>";
+      '<div class="helper">Приостановка блокирует новые сделки. Уже созданные заявки останутся в системе до отмены или истечения срока.</div>';
   }
 
   async function renderAdminAudit() {
