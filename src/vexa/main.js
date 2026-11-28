@@ -276,7 +276,7 @@ function portfolioPage() {
   const listings = new Set(state.myOrders.filter((order) => order.side === 'sell' && order.status === 'open').map((order) => order.collectible_id));
   const owned = state.portfolio;
   const totalEstimate = owned.reduce((sum, item) => sum + Number(relation(item.market_assets)?.initial_price || 0), 0);
-  return `<section class="page-heading"><div><span class="eyebrow">VEXA / YOUR COLLECTION</span><h1>Портфель</h1><p>Только предметы, которыми ты владеешь внутри VEXA.</p></div><div class="heading-stat"><strong>${owned.length}</strong><span>NFT в портфеле</span></div></section>
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / YOUR COLLECTION</span><h1>Мои NFT</h1><p>Все твои цифровые предметы в одном месте.</p></div><div class="heading-stat"><strong>${owned.length}</strong><span>предметов</span></div></section>
     <section class="portfolio-summary"><div><span>Коллекционные предметы</span><strong>${owned.length}</strong></div><div><span>Коллекции</span><strong>${new Set(owned.map((item) => relation(item.market_assets)?.collection_id).filter(Boolean)).size}</strong></div><div><span>Справочная сумма начальных цен</span><strong>${formatPrice(totalEstimate, state.currency, rateValue())} ${moneyLabel()}</strong><small>Не является рыночной оценкой</small></div></section>
     <section class="content-section"><div class="section-header"><div><h2>Мои NFT</h2><p>Выставленные экземпляры заблокированы от повторной продажи.</p></div></div>
       ${owned.length ? `<div class="portfolio-grid">${owned.map((item) => {
@@ -304,8 +304,8 @@ function collectionsPage() {
 
 function ordersPage() {
   if (!state.user) return authRequiredPage();
-  return `<section class="page-heading"><div><span class="eyebrow">VEXA / MY ORDERS</span><h1>Мои ордера</h1><p>Здесь находятся твои заявки на покупку и продажу.</p></div><div class="heading-stat"><strong>${state.myOrders.filter((order) => order.status === 'open').length}</strong><span>активных заявок</span></div></section>
-    <section class="content-section">${sectionHeader('Все заявки', 'Покупки резервируют баланс; отмена заявки освобождает резерв.')}
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / MY ORDERS</span><h1>Мои заявки</h1><p>Здесь отображаются твои заявки на покупку и продажу.</p></div><div class="heading-stat"><strong>${state.myOrders.filter((order) => order.status === 'open').length}</strong><span>активных заявок</span></div></section>
+    <section class="content-section">${sectionHeader('Все заявки', 'Следи за статусом и отменяй активные заявки.')}
       ${state.myOrders.length ? `<div class="orders-table">${state.myOrders.map((order) => `<div class="order-row"><div><span class="order-side ${order.side}">${order.side === 'buy' ? 'ПОКУПКА' : 'ПРОДАЖА'}</span><strong>${formatPrice(order.price, state.currency, rateValue())} ${moneyLabel()}</strong></div><div><strong>${esc(order.status === 'open' ? 'Открыта' : order.status === 'filled' ? 'Исполнена' : order.status === 'cancelled' ? 'Отменена' : order.status)}</strong><small>${formatRelative(order.created_at)}</small></div><div>${order.reserved_amount ? `<span class="muted-caption">Резерв: ${formatPrice(order.reserved_amount, state.currency, rateValue())}</span>` : ''}</div>${order.status === 'open' ? `<button class="button button-small button-outline" data-action="cancel-order" data-id="${order.id}">Отменить</button>` : '<span class="muted-caption">—</span>'}</div>`).join('')}</div>` : emptyState('Заявок пока нет', 'После выставления NFT или отправки заявки на покупку она появится здесь.', '<button class="button button-primary" data-action="navigate" data-page="market">Открыть маркет</button>')}
     </section>`;
 }
@@ -461,7 +461,7 @@ function render() {
 
   document.documentElement.dataset.theme = state.theme;
   document.documentElement.style.colorScheme = state.theme;
-  app.innerHTML = `${headerHTML()}<div class="app-layout">${sidebarHTML()}<main class="main-content"><div class="page-container">${pageContent}<footer class="site-footer"><span>© 2026 VEXA</span><span>Digital Collectibles Marketplace</span><span></span></footer></div></main></div>${mobileNavHTML()}<div id="modal-root">${modalHTML()}</div><div id="toast" role="status" aria-live="polite"></div>`;
+  app.innerHTML = `${headerHTML()}<div class="app-layout">${sidebarHTML()}<main class="main-content"><div class="page-container">${pageContent}<footer class="site-footer"><span>© 2026 VEXA</span></footer></div></main></div>${mobileNavHTML()}<div id="modal-root">${modalHTML()}</div><div id="toast" role="status" aria-live="polite"></div>`;
   window.__vexaMounted = true;
   if (window.__vexaBootWatchdog) clearTimeout(window.__vexaBootWatchdog);
   if (currentPage === 'detail' && state.selectedAsset && safeUrl(state.selectedAsset.model_url)) {
@@ -557,6 +557,7 @@ async function loadCatalog({ append = false } = {}) {
     render();
   } catch (error) {
     state.catalogLoadingMore = false;
+    if (append) render();
     throw error;
   }
 }
