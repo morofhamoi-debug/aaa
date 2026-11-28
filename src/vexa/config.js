@@ -9,8 +9,9 @@ export const VEXA = Object.freeze({
 });
 
 export const NAV_ITEMS = Object.freeze([
-  { id: 'home', label: 'Обзор', icon: '⌂' },
-  { id: 'market', label: 'Маркет', icon: '◈' },
-  { id: 'portfolio', label: 'Портфель', icon: '▦', auth: true },
-  { id: 'activity', label: 'Активность', icon: '↗', auth: true }
+  { id: 'market', label: 'Маркет', icon: 'market' },
+  { id: 'collections', label: 'Коллекции', icon: 'collections' },
+  { id: 'portfolio', label: 'Мои NFT', icon: 'inventory', auth: true },
+  { id: 'favorites', label: 'Избранное', icon: 'favorites', auth: true },
+  { id: 'profile', label: 'Профиль', icon: 'user', auth: true }
 ]);
