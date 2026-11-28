@@ -181,72 +181,47 @@ function sectionHeader(title, subtitle = '', action = '') {
 }
 
 function homePage() {
-  const signedIn = Boolean(state.user);
-  const shortcuts = [
-    { id: 'collections', icon: '▧', title: 'Коллекции', desc: 'Знакомься с сериями и их предметами' },
-    { id: 'market', icon: '◈', title: 'Маркет', desc: 'Сравнивай предложения и редкость' },
-    ...(signedIn ? [
-      { id: 'portfolio', icon: '▦', title: 'Мой портфель', desc: 'Все твои цифровые экземпляры' },
-      { id: 'orders', icon: '⇄', title: 'Мои ордера', desc: 'Заявки и их текущие статусы' }
-    ] : [
-      { id: 'register', icon: '＋', title: 'Создать аккаунт', desc: 'Сохрани профиль и начни собирать' }
-    ])
-  ];
-  return `<section class="hero-panel home-hero">
-      <div class="hero-copy"><span class="eyebrow hero-eyebrow"><i></i> ЦИФРОВАЯ ПЛОЩАДКА VEXA</span>
-        <h1>Цифровые подарки.<br><em>Твой личный рынок.</em></h1>
-        <p>Изучай коллекции, сравнивай редкость, собирай цифровые экземпляры и следи за своей активностью в одном месте.</p>
-        <div class="hero-actions">
-          <button class="button button-primary" data-action="${signedIn ? 'navigate' : 'register'}" data-page="market">${signedIn ? 'Открыть маркет' : 'Создать аккаунт'} <span>↗</span></button>
-          ${signedIn ? '<span class="hero-note">Ты уже в VEXA — выбери коллекцию или открой маркет.</span>' : '<button class="button button-outline hero-secondary" data-action="login">У меня уже есть аккаунт</button>'}
-        </div>
-        <span class="hero-note hero-demo-note">Демо-режим: без реальных платежей, пополнений и вывода средств.</span>
-      </div>
-      <div class="hero-object" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="hero-gem"><span>V</span></div><div class="hero-glow"></div><div class="hero-coordinate">VEXA / 001</div></div>
-    </section>
-    <section class="metric-strip">
-      <div><span>Опубликовано коллекций</span><strong>${state.publicStats.collections.toLocaleString('ru-RU')}</strong></div>
-      <div><span>Вариантов предметов</span><strong>${state.publicStats.variants.toLocaleString('ru-RU')}</strong></div>
-      <div><span>Завершённых сделок</span><strong>${state.publicStats.trades.toLocaleString('ru-RU')}</strong></div>
-      <div><span>Реальные платежи</span><strong>Отключены</strong></div>
-    </section>
-    <section class="content-section home-shortcuts">
-      ${sectionHeader('Быстрый доступ', 'Выбирай отдельный раздел — в нём собраны все нужные инструменты')}
-      <div class="hub-grid">${shortcuts.map((item) => `<button class="hub-card" data-action="${item.id === 'register' ? 'register' : 'navigate'}" data-page="${item.id}">
-        <span class="hub-card-icon">${item.icon}</span><strong>${item.title}</strong><small>${item.desc}</small><span class="hub-card-arrow">↗</span>
-      </button>`).join('')}</div>
-    </section>
-    <section class="content-section onboarding-section">
-      ${sectionHeader('Как начать пользоваться VEXA', 'Три шага — и ты разберёшься в основных возможностях площадки')}
-      <div class="onboarding-grid">
-        <article class="onboarding-card"><span class="onboarding-number">01</span><div><h3>Создай аккаунт</h3><p>Укажи почту, придумай имя пользователя и пароль. Подтверди адрес по письму, если подтверждение включено.</p></div></article>
-        <article class="onboarding-card"><span class="onboarding-number">02</span><div><h3>Изучи коллекции</h3><p>Открой маркет, посмотри описание предметов, их редкость, тираж и доступные предложения.</p></div></article>
-        <article class="onboarding-card"><span class="onboarding-number">03</span><div><h3>Следи за портфелем</h3><p>В личных разделах будут отображаться твои экземпляры NFT, заявки, избранное и история сделок.</p></div></article>
-      </div>
-    </section>
-    <section class="content-section home-note">
-      <div class="panel-card"><span class="eyebrow">ВАЖНО ЗНАТЬ</span><h3>Сейчас VEXA работает в демо-режиме</h3><p>Новый аккаунт получает нулевой внутренний баланс. Внутренние единицы нужны только для тестирования механики площадки: они не являются деньгами. Реальное пополнение, вывод и блокчейн-операции не подключены.</p></div>
-    </section>`;
+  return marketPage();
 }
 function marketPage() {
   const rarities = [...new Set(state.variants.map((asset) => asset.rarity).filter(Boolean))].sort();
   const variants = [...state.variants];
   if (state.catalogSort === 'price') variants.sort((a, b) => minPrice(a.id) - minPrice(b.id));
   if (state.catalogSort === 'newest') variants.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  return `<section class="page-heading"><div><span class="eyebrow">VEXA / MARKETPLACE</span><h1>Маркет</h1><p>Коллекционные цифровые предметы и активные предложения.</p></div><div class="heading-stat"><strong>${variants.length}</strong><span>вариантов в выборке</span></div></section>
-    <section class="filter-panel">
-      <form id="market-search-form" class="search-field"><span>⌕</span><input id="market-search" name="search" value="${esc(state.catalogSearch)}" placeholder="Поиск подарков и редкостей"><button type="submit" aria-label="Искать">↵</button></form>
-      <select id="collection-filter"><option value="">Все коллекции</option>${state.collections.map((item) => `<option value="${item.id}" ${state.collectionFilter === item.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select>
-      <select id="rarity-filter"><option value="">Все редкости</option>${rarities.map((item) => `<option value="${esc(item)}" ${state.rarityFilter === item ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>
-      <select id="sort-filter"><option value="newest" ${state.catalogSort === 'newest' ? 'selected' : ''}>Сначала новые</option><option value="price" ${state.catalogSort === 'price' ? 'selected' : ''}>По минимальной цене</option></select>
-      <button class="button button-outline" data-action="clear-filters">Сбросить</button>
+  const activeFilters = Number(Boolean(state.collectionFilter)) + Number(Boolean(state.rarityFilter));
+  return `<section class="market-page">
+    <div class="market-heading"><div><h1>Маркет</h1><p>Найди и выбери цифровой подарок</p></div><span class="market-count">${variants.length} предметов</span></div>
+    <div class="market-toolbar">
+      <button class="filter-trigger ${state.filtersOpen ? 'active' : ''}" data-action="toggle-filters" aria-label="Открыть фильтры" aria-expanded="${Boolean(state.filtersOpen)}" aria-controls="market-filter-panel" title="Фильтры">
+        ${svgIcon('filter', 22)}
+        ${activeFilters ? `<span class="filter-count">${activeFilters}</span>` : ''}
+      </button>
+      <form id="market-search-form" class="search-field market-search">
+        <span>${svgIcon('search', 20)}</span>
+        <input id="market-search" name="search" value="${esc(state.catalogSearch)}" placeholder="Поиск по названию" autocomplete="off">
+        <button type="submit" aria-label="Найти">${svgIcon('arrow', 18)}</button>
+      </form>
+    </div>
+    <section id="market-filter-panel" class="filter-panel ${state.filtersOpen ? 'is-open' : ''}" aria-label="Фильтры каталога" aria-hidden="${!state.filtersOpen}">
+      <div class="filter-fields">
+        <label class="filter-field" for="collection-filter"><span>Коллекция</span>
+          <select id="collection-filter"><option value="">Все коллекции</option>${state.collections.map((item) => `<option value="${item.id}" ${state.collectionFilter === item.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select>
+        </label>
+        <label class="filter-field" for="rarity-filter"><span>Редкость</span>
+          <select id="rarity-filter"><option value="">Любая редкость</option>${rarities.map((item) => `<option value="${esc(item)}" ${state.rarityFilter === item ? 'selected' : ''}>${esc(item)}</option>`).join('')}</select>
+        </label>
+        <label class="filter-field" for="sort-filter"><span>Сортировка</span>
+          <select id="sort-filter"><option value="newest" ${state.catalogSort === 'newest' ? 'selected' : ''}>Сначала новые</option><option value="price" ${state.catalogSort === 'price' ? 'selected' : ''}>Сначала дешевле</option></select>
+        </label>
+        <button class="button button-outline filter-reset" data-action="clear-filters">Сбросить фильтры</button>
+      </div>
     </section>
     <section class="market-results">
-      <div class="results-line"><span>${variants.length} вариантов</span><span>Цены указаны во внутренних единицах VEXA</span></div>
-      ${variants.length ? `<div class="nft-grid">${variants.map(variantCard).join('')}</div>${state.catalogHasMore ? '<div class="load-more-wrap"><button class="button button-outline" data-action="load-more">Показать ещё</button></div>' : ''}` : emptyState('Ничего не найдено', 'Измени параметры поиска или вернись к полному каталогу.')}
-    </section>`;
+      <div class="results-line"><span>${variants.length} предметов</span></div>
+      ${variants.length ? `<div class="nft-grid">${variants.map(variantCard).join('')}</div>${state.catalogHasMore ? '<div class="load-more-wrap"><button class="button button-outline" data-action="load-more">Показать ещё</button></div>' : ''}` : emptyState('Пока нет подходящих предметов', 'Измени параметры фильтра или попробуй другой запрос.')}
+    </section>
+  </section>`;
 }
-
 function minPrice(assetId) {
   const offers = state.listings.filter((listing) => relation(listing.market_collectibles)?.asset_id === assetId);
   return offers.length ? Math.min(...offers.map((offer) => Number(offer.price))) : Number.MAX_SAFE_INTEGER;
@@ -457,7 +432,7 @@ function modalHTML() {
 
 function render() {
   disposeViewer();
-  const currentPage = state.page;
+  const currentPage = state.page === 'home' ? 'market' : state.page;
   let pageContent = '';
   if (currentPage === 'home') pageContent = homePage();
   else if (currentPage === 'collections') pageContent = collectionsPage();
@@ -539,6 +514,7 @@ async function reloadAccountAndRender() {
 }
 
 function navigate(page) {
+  if (page === 'home') page = 'market';
   if (page === 'login') { openAuth('login'); return; }
   if (['portfolio', 'favorites', 'orders', 'activity', 'profile', 'notifications'].includes(page) && !state.user) {
     openAuth('login'); return;
@@ -621,6 +597,7 @@ async function handleClick(event) {
     }
     else if (action === 'close-modal') { state.modal = null; render(); }
     else if (action === 'auth-mode') openAuth(target.dataset.mode);
+    else if (action === 'toggle-filters') { state.filtersOpen = !state.filtersOpen; render(); }
     else if (action === 'theme') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('vexa-theme', state.theme); render(); }
     else if (action === 'currency') {
       if (!rateValue()) { toast('Курс валют пока недоступен', 'error'); return; }
