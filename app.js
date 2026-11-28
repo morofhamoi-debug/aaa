@@ -614,11 +614,10 @@
     screen.innerHTML = '<div class="section-heading"><h2>' + esc(collection.collection.name) +
       '</h2><span class="section-note">' + items.length + " NFT</span></div><div class=\"gift-grid\">" +
       items.map((item) => '<button type="button" class="gift-card" data-action="open-owned-asset" data-id="' +
-        item.asset.id + '"><div class="gift-visual">' +
-        (item.asset.model_url ? '<model-viewer src="' + esc(item.asset.model_url) + '" auto-rotate loading="lazy"></model-viewer>' :
-          (item.asset.image_url ? '<img src="' + esc(item.asset.image_url) + '" alt="" loading="lazy">' : '<span class="gift-placeholder">✧</span>')) +
-        '</div><div class="gift-card-body"><div class="gift-title">' + esc(item.asset.name) +
-        '</div><div class="gift-meta">Экземпляр #' + esc(item.serial_number) + '</div><span class="price-pill">Мой NFT</span></div></button>').join("") +
+        item.id + '">' + mediaHtml(item.asset) +
+        '<div class="gift-card-body"><div class="gift-title">' + esc(item.asset.name) +
+        '</div><div class="gift-meta">Экземпляр #' + esc(item.serial_number) +
+        '</div><span class="price-pill">Мой NFT</span></div></button>').join("") +
       "</div>";
   }
 
@@ -1030,7 +1029,7 @@
         price,
         formType === "asset-bid" ? "asset" : "collectible"
       );
-      return openAsset(state.currentAsset);
+      return openAsset(state.currentAsset, state.currentCollectible);
     }
     if (formType === "admin-search") return searchAdminUsers(value("search"));
     if (formType === "balance-adjust") {
