@@ -57,7 +57,7 @@ async function verifyInitData(raw: string, botToken: string) {
 
   if (!suppliedHash || !Number.isSafeInteger(authDate) ||
       authDate > now + 60 || now - authDate > 15 * 60) {
-    throw new Error("Telegram session expired. Reopen VEXA from Telegram.");
+    throw new Error("Telegram session expired. Reopen the Mini App from Telegram.");
   }
 
   const checkString = [...values.entries()]
@@ -155,7 +155,7 @@ Deno.serve(async (req: Request) => {
         expires_at: new Date((telegram.authDate + 15 * 60) * 1000).toISOString(),
       });
     if (nonceError?.code === "23505") {
-      return json({ error: "Telegram session was already used. Reopen VEXA from Telegram." }, 409);
+      return json({ error: "Telegram session was already used. Reopen the Mini App from Telegram." }, 409);
     }
     if (nonceError) throw nonceError;
 
@@ -252,7 +252,7 @@ Deno.serve(async (req: Request) => {
     if (telegram.photoUrl) profilePatch.avatar_url = telegram.photoUrl;
 
     // Prefer the Telegram username as the public VEXA handle when it fits
-    // VEXA's handle rules and is not already owned by another user.
+    // the marketplace handle rules and is not already owned by another user.
     if (telegram.username && telegram.username.length <= 24) {
       const { data: handleOwner, error: handleError } = await admin
         .from("market_profiles")
@@ -310,12 +310,12 @@ Deno.serve(async (req: Request) => {
     const authFailure = [
       "Invalid Telegram data",
       "Telegram signature is invalid",
-      "Telegram session expired. Reopen VEXA from Telegram.",
+      "Telegram session expired. Reopen the Mini App from Telegram.",
       "Telegram user data is missing",
       "Telegram user ID is invalid",
       "Telegram account has no first name",
     ].includes(message);
-    const replayFailure = message === "Telegram session was already used. Reopen VEXA from Telegram.";
+    const replayFailure = message === "Telegram session was already used. Reopen the Mini App from Telegram.";
     const safeMessage = authFailure || replayFailure ? message : "Unable to sign in with Telegram";
     return json({ error: safeMessage }, authFailure ? 401 : replayFailure ? 409 : 500);
   }
