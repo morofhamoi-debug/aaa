@@ -62,7 +62,7 @@ async function verifyInitData(raw: string, botToken: string) {
 
   const checkString = [...values.entries()]
     .filter(([key]) => key !== "hash")
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`)
     .join("\n");
 
@@ -76,7 +76,8 @@ async function verifyInitData(raw: string, botToken: string) {
   const rawUser = values.get("user");
   if (!rawUser || rawUser.length > 4096) throw new Error("Telegram user data is missing");
 
-  const telegramUser = JSON.parse(rawUser);
+  let telegramUser: any;
+  try { telegramUser = JSON.parse(rawUser); } catch { throw new Error('Invalid Telegram data'); }
   if (!Number.isSafeInteger(telegramUser?.id) ||
       telegramUser.id <= 0 ||
       telegramUser.id > 4_503_599_627_370_495) {
@@ -119,7 +120,13 @@ Deno.serve(async (req: Request) => {
   try {
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    let serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    try {
+      const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+      serviceKey = secretKeys.default || serviceKey;
+    } catch {
+      // Fall back to the legacy service-role environment variable when present.
+    }
 
     if (!botToken || !supabaseUrl || !serviceKey) {
       return json({ error: "Telegram sign-in is not configured on the server yet" }, 503);
@@ -184,8 +191,19 @@ Deno.serve(async (req: Request) => {
           telegram_photo_url: telegram.photoUrl,
         },
       });
-      if (error) throw error;
-      authUser = data.user;
+      if (error) {
+        const { data: recovered, error: recoverError } = await admin.auth.admin.listUsers({
+          page: 1,
+          perPage: 1000,
+        });
+        if (recoverError) throw error;
+        authUser = (recovered.users || []).find((user: any) =>
+          String(user.email || "").toLowerCase() === syntheticEmail
+        ) || null;
+        if (!authUser) throw error;
+      } else {
+        authUser = data.user;
+      }
     } else {
       const { data, error } = await admin.auth.admin.updateUserById(authUser.id, {
         user_metadata: {
@@ -270,14 +288,15 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Telegram authentication failed";
-    const safeMessage = [
+    const authFailure = [
       "Invalid Telegram data",
       "Telegram signature is invalid",
       "Telegram session expired. Reopen VEXA from Telegram.",
       "Telegram user data is missing",
       "Telegram user ID is invalid",
       "Telegram account has no first name",
-    ].includes(message) ? message : "Unable to sign in with Telegram";
-    return json({ error: safeMessage }, message.startsWith("Telegram") ? 401 : 400);
+    ].includes(message);
+    const safeMessage = authFailure ? message : "Unable to sign in with Telegram";
+    return json({ error: safeMessage }, authFailure ? 401 : 500);
   }
 });
