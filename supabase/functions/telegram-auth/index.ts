@@ -246,13 +246,16 @@ Deno.serve(async (req: Request) => {
       authUser = data.user;
     }
 
-    const profilePatch: Record<string, unknown> = {
-      display_name: telegram.displayName,
-    };
-    if (telegram.photoUrl) profilePatch.avatar_url = telegram.photoUrl;
+    const { data: existingProfile, error: existingProfileError } = await admin
+      .from("market_profiles")
+      .select("handle")
+      .eq("id", authUser.id)
+      .maybeSingle();
+    if (existingProfileError) throw existingProfileError;
 
-    // Prefer the Telegram username as the public VEXA handle when it fits
-    // the marketplace handle rules and is not already owned by another user.
+    let handle = existingProfile?.handle || fallbackHandle;
+    // Prefer the Telegram username as the public marketplace handle when it
+    // is not already owned by another account.
     if (telegram.username && telegram.username.length <= 24) {
       const { data: handleOwner, error: handleError } = await admin
         .from("market_profiles")
@@ -261,15 +264,31 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
       if (handleError) throw handleError;
       if (!handleOwner || handleOwner.id === authUser.id) {
-        profilePatch.handle = telegram.username;
+        handle = telegram.username;
       }
     }
 
+    const profilePatch: Record<string, unknown> = {
+      id: authUser.id,
+      handle,
+      display_name: telegram.displayName,
+    };
+    if (telegram.photoUrl) profilePatch.avatar_url = telegram.photoUrl;
+
     const { error: profileError } = await admin
       .from("market_profiles")
-      .update(profilePatch)
-      .eq("id", authUser.id);
+      .upsert(profilePatch, { onConflict: "id" });
     if (profileError) throw profileError;
+
+    const { error: walletError } = await admin
+      .from("market_wallets")
+      .upsert({
+        user_id: authUser.id,
+        balance: 0,
+        reserved_balance: 0,
+        currency_code: "DEMO",
+      }, { onConflict: "user_id", ignoreDuplicates: true });
+    if (walletError) throw walletError;
 
     const { error: mappingError } = await admin
       .from("market_telegram_accounts")
