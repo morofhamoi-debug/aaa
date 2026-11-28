@@ -48,7 +48,54 @@
   function fmt(value) {
     return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Number(value || 0));
   }
-  function toast(message) {
+  function hapticImpact(style) {
+    try {
+      const feedback = tg && tg.HapticFeedback;
+      if (feedback && typeof feedback.impactOccurred === "function") {
+        feedback.impactOccurred(style || "light");
+        return true;
+      }
+    } catch (error) {
+      console.debug("Telegram haptic impact unavailable", error);
+    }
+    try {
+      if (navigator && typeof navigator.vibrate === "function") {
+        return navigator.vibrate(8);
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function hapticSelection() {
+    try {
+      const feedback = tg && tg.HapticFeedback;
+      if (feedback && typeof feedback.selectionChanged === "function") {
+        feedback.selectionChanged();
+        return true;
+      }
+    } catch (error) {
+      console.debug("Telegram haptic selection unavailable", error);
+    }
+    return false;
+  }
+
+  function hapticNotification(type) {
+    try {
+      const feedback = tg && tg.HapticFeedback;
+      if (feedback && typeof feedback.notificationOccurred === "function") {
+        feedback.notificationOccurred(type);
+        return true;
+      }
+    } catch (error) {
+      console.debug("Telegram haptic notification unavailable", error);
+    }
+    return false;
+  }
+
+  function toast(message, feedback) {
+    if (feedback === "success" || feedback === "warning" || feedback === "error") {
+      hapticNotification(feedback);
+    }
     toastEl.textContent = message;
     toastEl.classList.add("show");
     clearTimeout(toast._timer);
@@ -921,7 +968,7 @@
       idempotency_key: crypto.randomUUID()
     });
     await refreshWalletOnly();
-    toast(result && result.status === "filled" ? "Сделка исполнена" : "Заявка создана");
+    toast(result && result.status === "filled" ? "Сделка исполнена" : "Заявка создана", "success");
     return result;
   }
   async function refreshWalletOnly() {
@@ -954,7 +1001,7 @@
       button.disabled = true;
       await api("cancel_order", { order_id: button.dataset.id });
       await refreshWalletOnly();
-      toast("Заявка отменена");
+      toast("Заявка отменена", "success");
       if (state.view === "asset") return openAsset(state.currentAsset, state.currentCollectible);
       return renderMyOrders();
     }
@@ -967,7 +1014,7 @@
     if (action === "admin-open-user") return openAdminUser(button.dataset.id);
     if (action === "admin-lift-all") {
       await api("admin_lift_restrictions", { user_id: button.dataset.id });
-      toast("Ограничения сняты");
+      toast("Ограничения сняты", "success");
       return openAdminUser(button.dataset.id);
     }
     if (action === "catalog-status") {
@@ -977,13 +1024,13 @@
         target_id: button.dataset.id,
         status: status
       });
-      toast(status === "published" ? "Опубликовано" : "Снято с публикации");
+      toast(status === "published" ? "Опубликовано" : "Снято с публикации", "success");
       return renderAdminCatalog();
     }
     if (action === "toggle-trading") {
       const enabled = button.dataset.enabled === "true";
       await api("admin_update_settings", { trading_enabled: enabled });
-      toast(enabled ? "Торги возобновлены" : "Торги приостановлены");
+      toast(enabled ? "Торги возобновлены" : "Торги приостановлены", "success");
       return renderAdminMarket();
     }
     if (action === "timeframe") {
@@ -1038,7 +1085,7 @@
       const amount = Number(value("amount"));
       if (!Number.isSafeInteger(amount) || amount === 0) throw new Error("Сумма должна быть целым числом, не равным нулю");
       await api("admin_adjust_balance", { user_id: state.adminSelectedUser, amount: amount, reason: value("reason") });
-      toast(amount > 0 ? "Баланс начислен" : "Баланс списан");
+      toast(amount > 0 ? "Баланс начислен" : "Баланс списан", "success");
       return openAdminUser(state.adminSelectedUser);
     }
     if (formType === "restriction") {
@@ -1049,7 +1096,7 @@
         duration_minutes: duration,
         reason: value("reason")
       });
-      toast("Ограничение установлено");
+      toast("Ограничение установлено", "success");
       return openAdminUser(state.adminSelectedUser);
     }
     if (formType === "create-collection") {
@@ -1060,7 +1107,7 @@
         cover_url: value("cover_url") || null,
         status: value("status")
       });
-      toast("Коллекция создана");
+      toast("Коллекция создана", "success");
       return renderAdminCatalog();
     }
     if (formType === "create-gift") {
@@ -1072,7 +1119,7 @@
         cover_url: value("cover_url") || null,
         status: value("status")
       });
-      toast("Модель подарка добавлена");
+      toast("Модель подарка добавлена", "success");
       return renderAdminCatalog();
     }
     if (formType === "mint-asset") {
@@ -1084,7 +1131,7 @@
         asset_id: form.dataset.id,
         quantity: quantity
       });
-      toast("Выпущено экземпляров: " + fmt(result && result.minted));
+      toast("Выпущено экземпляров: " + fmt(result && result.minted), "success");
       return renderAdminCatalog();
     }
     if (formType === "admin-commission") {
@@ -1093,7 +1140,7 @@
         throw new Error("Комиссия должна быть от 0 до 10%");
       }
       await api("admin_update_settings", { commission_bps: Math.round(percent * 100) });
-      toast("Комиссия сохранена");
+      toast("Комиссия сохранена", "success");
       return renderAdminMarket();
     }
     if (formType === "create-variant") {
@@ -1143,7 +1190,7 @@
         mint_quantity: mintQuantity,
         status: value("status")
       });
-      toast("NFT-модель создана");
+      toast("NFT-модель создана", "success");
       return renderAdminCatalog();
     }
   }
@@ -1168,8 +1215,23 @@
   }
   function showError(error) {
     console.error(error);
-    toast(getErrorMessage(error));
+    toast(getErrorMessage(error), "error");
   }
+
+  document.addEventListener("click", (event) => {
+    const control = event.target && event.target.closest
+      ? event.target.closest("button, a, [role='button']")
+      : null;
+    if (!control || control.disabled || control.getAttribute("aria-disabled") === "true") return;
+    hapticImpact("light");
+  }, true);
+
+  document.addEventListener("change", (event) => {
+    const control = event.target;
+    if (control && control.matches && control.matches("select, input[type='checkbox'], input[type='radio'], [data-filter]")) {
+      hapticSelection();
+    }
+  }, true);
 
   bottomNav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-tab]");
@@ -1226,7 +1288,7 @@
       if (result.error) throw result.error;
       state.preferences[key] = value;
       if (key === "theme") setTheme(value);
-      toast("Настройки сохранены");
+      toast("Настройки сохранены", "success");
     } catch (error) {
       showError(error);
     }
