@@ -320,11 +320,12 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         if (error) throw error;
         result = data;
       } else if (action === "admin_users") {
-        if (!validText(body.search, 120) || body.search.trim().length < 2) {
-          return response({ error: "Введите не менее двух символов для поиска" }, 400);
+        const search = String(body.search || "").trim();
+        if (search.length > 120) {
+          return response({ error: "Search query is too long" }, 400);
         }
         const { data, error } = await ctx.supabaseAdmin.rpc("market_admin_search_users", {
-          p_actor_id: actorId, p_search: body.search.trim(),
+          p_actor_id: actorId, p_search: search,
         });
         if (error) throw error;
         result = data || [];
@@ -406,7 +407,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       "Invalid catalog status", "Catalog item not found",
       "Adjustment would spend reserved funds", "Invalid restriction parameters",
       "Trading is not available for this account", "Listing is not available for this account",
-      "User not found", "Invalid user ID", "Invalid restriction type",
+      "User not found", "Invalid user ID", "Invalid restriction type", "Search query is too long",
       "Введите не менее двух символов для поиска",
     ];
     const safe = safeMessages.includes(message)
