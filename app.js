@@ -1067,6 +1067,26 @@
     setTab(button.dataset.tab).catch(showError);
   });
   backButton.addEventListener("click", goBack);
+  document.getElementById("currency-toggle").addEventListener("click", async () => {
+    try {
+      const next = state.displayCurrency === "RUB" ? "USD" : "RUB";
+      if (next === "USD" && (!state.fxRate || state.fxRate <= 0)) {
+        const fx = await api("get_fx_rate");
+        state.fxRate = Number(fx && fx.rub_per_usd) || null;
+      }
+      if (next === "USD" && (!state.fxRate || state.fxRate <= 0)) {
+        throw new Error("Курс доллара сейчас недоступен");
+      }
+      const result = await state.sb.from("market_user_preferences")
+        .update({ display_currency: next }).eq("user_id", state.user.id);
+      if (result.error) throw result.error;
+      state.displayCurrency = next;
+      state.preferences.display_currency = next;
+      setBalance();
+    } catch (error) {
+      showError(error);
+    }
+  });
   screen.addEventListener("click", (event) => {
     const button = event.target.closest("[data-action]");
     if (!button) return;
