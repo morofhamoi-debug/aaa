@@ -152,11 +152,11 @@ function variantCard(asset) {
     <div class="nft-art ${image ? 'has-image' : ''}">
       ${image ? `<img src="${esc(image)}" alt="" loading="lazy">` : '<div class="art-placeholder"><span>V</span><i></i></div>'}
       <span class="edition-badge">${esc(collection)}</span>
-      ${state.favorites.has(asset.id) ? '<span class="favorite-indicator">♥</span>' : ''}
+      ${state.favorites.has(asset.id) ? '<span class="favorite-indicator">${svgIcon('favorites',17)}</span>' : ''}
       ${rarityTag(asset.rarity)}
     </div>
     <div class="nft-meta"><div><span class="eyebrow">${esc(giftType || collection)}</span><h3>${esc(asset.name)}</h3></div><span class="supply-count">${Number(asset.max_supply).toLocaleString('ru-RU')} шт.</span></div>
-    <div class="nft-card-bottom"><div><span class="muted-caption">${floor === null ? 'Предложений нет' : 'Минимальное предложение'}</span><strong>${floor === null ? '—' : `${formatPrice(floor, state.currency, rateValue())} ${moneyLabel()}`}</strong></div><span class="card-arrow">↗</span></div>
+    <div class="nft-card-bottom"><div><span class="muted-caption">${floor === null ? 'Предложений нет' : 'Минимальное предложение'}</span><strong>${floor === null ? '—' : `${formatPrice(floor, state.currency, rateValue())} ${moneyLabel()}`}</strong></div><span class="card-arrow">${svgIcon('arrow',17)}</span></div>
   </article>`;
 }
 
@@ -230,7 +230,7 @@ function minPrice(assetId) {
 function tradeRow(trade) {
   const collectible = relation(trade.market_collectibles) || {};
   const asset = relation(collectible.market_assets) || {};
-  return `<div class="activity-row"><div class="activity-symbol">◈</div><div class="activity-details"><strong>${esc(asset.name || 'NFT')} <span>${esc(asset.rarity || '')}</span></strong><small>Экземпляр #${esc(collectible.serial_number ?? '—')} · ${formatRelative(trade.created_at)}</small></div><div class="activity-price"><strong>${formatPrice(trade.price, state.currency, rateValue())} ${moneyLabel()}</strong><small>Сделка завершена</small></div></div>`;
+  return `<div class="activity-row"><div class="activity-symbol">${svgIcon('trades',17)}</div><div class="activity-details"><strong>${esc(asset.name || 'NFT')} <span>${esc(asset.rarity || '')}</span></strong><small>Экземпляр #${esc(collectible.serial_number ?? '—')} · ${formatRelative(trade.created_at)}</small></div><div class="activity-price"><strong>${formatPrice(trade.price, state.currency, rateValue())} ${moneyLabel()}</strong><small>Сделка завершена</small></div></div>`;
 }
 
 function detailPage() {
@@ -241,7 +241,7 @@ function detailPage() {
   const siblings = asset.gift_type_id ? state.variants.filter((item) => item.gift_type_id === asset.gift_type_id && item.id !== asset.id) : [];
   const modelUrl = safeUrl(asset.model_url);
   const imageUrl = safeUrl(asset.image_url);
-  return `<div class="detail-back"><button class="text-action" data-action="back-market">← Вернуться в маркет</button><span>VEXA / ITEM / ${esc(asset.id.slice(0, 8).toUpperCase())}</span></div>
+  return `<div class="detail-back"><button class="text-action detail-back-action" data-action="back-market">${svgIcon('back',17)} Вернуться в маркет</button><span>VEXA / ITEM / ${esc(asset.id.slice(0, 8).toUpperCase())}</span></div>
     <section class="detail-layout">
       <div class="detail-visual">
         <div class="detail-art-top"><span>3D COLLECTIBLE</span><span>${rarityTag(asset.rarity)}</span></div>
@@ -256,7 +256,7 @@ function detailPage() {
         <p class="detail-subtitle">${esc(giftType ? giftType + ' · ' : '')}${esc(asset.rarity || 'Без редкости')}</p>
         <p class="detail-description">${esc(asset.description || 'Описание для этого варианта ещё не добавлено.')}</p>
         <div class="detail-facts"><div><span>Коллекция</span><strong>${esc(collection || '—')}</strong></div><div><span>Тираж</span><strong>${Number(asset.max_supply).toLocaleString('ru-RU')}</strong></div><div><span>Начальная цена</span><strong>${formatPrice(asset.initial_price, state.currency, rateValue())} ${moneyLabel()}</strong></div></div>
-        <div class="detail-action-panel"><div><span>Активных предложений</span><strong>${state.detailListings.length}</strong></div><span class="muted-caption">Цена формируется только реальными предложениями и сделками</span><button class="button button-outline full-width" data-action="favorite" data-id="${asset.id}">${state.favorites.has(asset.id) ? '♥ В избранном' : '♡ Добавить в избранное'}</button></div>
+        <div class="detail-action-panel"><div><span>Активных предложений</span><strong>${state.detailListings.length}</strong></div><span class="muted-caption">Цена формируется только реальными предложениями и сделками</span><button class="button button-outline full-width" data-action="favorite" data-id="${asset.id}">${state.favorites.has(asset.id) ? svgIcon('favorites',17) + ' В избранном' : svgIcon('favorites',17) + ' Добавить в избранное'}</button></div>
       </div>
     </section>
     <section class="content-section chart-section">
@@ -317,25 +317,24 @@ function tradesPage() {
 
 function menuPage() {
   const links = [
-    { id: 'collections', icon: '▧', title: 'Коллекции', desc: 'Опубликованные серии' },
-    { id: 'trades', icon: '↗', title: 'История сделок', desc: 'Завершённые операции' },
+    { id: 'collections', icon: 'collections', title: 'Коллекции', desc: 'Опубликованные серии' },
+    { id: 'trades', icon: 'trades', title: 'История сделок', desc: 'Завершённые операции' },
     ...(state.user ? [
-      { id: 'favorites', icon: '♡', title: 'Избранное', desc: 'Сохранённые NFT' },
-      { id: 'portfolio', icon: '▦', title: 'Мой портфель', desc: 'Твои экземпляры' },
-      { id: 'orders', icon: '⇄', title: 'Мои ордера', desc: 'Заявки на покупку и продажу' },
-      { id: 'notifications', icon: '♧', title: 'Уведомления', desc: 'Сообщения аккаунта' },
-      { id: 'profile', icon: '◉', title: 'Профиль', desc: 'Настройки аккаунта' }
+      { id: 'favorites', icon: 'favorites', title: 'Избранное', desc: 'Сохранённые NFT' },
+      { id: 'portfolio', icon: 'inventory', title: 'Мои NFT', desc: 'Твои экземпляры' },
+      { id: 'orders', icon: 'orders', title: 'Мои заявки', desc: 'Заявки на покупку и продажу' },
+      { id: 'notifications', icon: 'notifications', title: 'Уведомления', desc: 'Сообщения аккаунта' },
+      { id: 'profile', icon: 'user', title: 'Профиль', desc: 'Настройки аккаунта' }
     ] : [
-      { id: 'login', icon: '◉', title: 'Войти', desc: 'Вход или регистрация' }
+      { id: 'login', icon: 'user', title: 'Войти', desc: 'Вход или регистрация' }
     ]),
-    ...(state.admin ? [{ id: 'admin', icon: '⌘', title: 'Администрированих', desc: 'Управление площадкой' }] : [])
+    ...(state.admin ? [{ id: 'admin', icon: 'orders', title: 'Администрирование', desc: 'Управление площадкой' }] : [])
   ];
-  return `<section class="page-heading"><div><span class="eyebrow">VEXA / NAVIGATION</span><h1>Все разделы</h1><p>Выбери нужный экран. Каждый раздел открывается отдельно.</p></div></section>
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / NAVIGATION</span><h1>Все разделы</h1><p>Выбери нужный экран.</p></div></section>
     <section class="content-section"><div class="hub-grid menu-hub-grid">${links.map((item) => `<button class="hub-card" data-action="${item.id === 'login' ? 'login' : 'navigate'}" data-page="${item.id}">
-      <span class="hub-card-icon">${item.icon}</span><strong>${item.title}</strong><small>${item.desc}</small><span class="hub-card-arrow">↗</span>
+      <span class="hub-card-icon">${svgIcon(item.icon,22)}</span><strong>${item.title}</strong><small>${item.desc}</small><span class="hub-card-arrow">${svgIcon('arrow',17)}</span>
     </button>`).join('')}</div></section>`;
 }
-
 function activityPage() {
   return ordersPage();
 }
@@ -344,7 +343,7 @@ function profilePage() {
   const profile = state.profile || {};
   return `<section class="page-heading"><div><span class="eyebrow">VEXA / ACCOUNT</span><h1>Профиль</h1><p>Управление аккаунтом и публичной информацией.</p></div></section>
     <section class="profile-layout"><div class="profile-card"><div class="profile-avatar">${esc(initials(profile.display_name || profile.handle))}</div><div><h2>${esc(profile.display_name || 'Участник')}</h2><p>@${esc(profile.handle || '')}</p><small>ID: ${esc(state.user.id)}</small></div><div class="profile-separator"></div><div class="profile-stat"><span>Дата регистрации</span><strong>${formatDate(state.user.created_at)}</strong></div><div class="profile-stat"><span>Баланс</span><strong>${formatBalance(getBalance(), state.currency, rateValue())} ${moneyLabel()}</strong></div><div class="profile-stat"><span>Экземпляры NFT</span><strong>${state.portfolio.length}</strong></div><button class="button button-outline full-width" data-action="logout">Выйти из аккаунта</button></div>
-      <div class="profile-settings"><div class="panel-card"><h3>Публичный профиль</h3><form id="profile-form" class="form-stack"><label>Отображаемое имя<input name="display_name" maxlength="60" value="${esc(profile.display_name || '')}" required></label><label>О себе<textarea name="bio" maxlength="300" rows="3">${esc(profile.bio || '')}</textarea></label><button class="button button-dark" type="submit">Сохранить профиль</button></form></div><div class="panel-card"><h3>Безопасность</h3><p>Для смены пароля используйте ссылку восстановления, отправленную на подтверждённую почту.</p><button class="button button-outline" data-action="reset-password">Отправить ссылку смены пароля</button></div><div class="panel-card"><h3>Экономика VEXA</h3><p>Баланс и NFT существуют только во внутренней тестовой системе. Пополнение и вывод реальных средств недоступны.</p></div></div>
+      <div class="profile-settings"><div class="panel-card"><h3>Публичный профиль</h3><form id="profile-form" class="form-stack"><label>Отображаемое имя<input name="display_name" maxlength="60" value="${esc(profile.display_name || '')}" required></label><label>О себе<textarea name="bio" maxlength="300" rows="3">${esc(profile.bio || '')}</textarea></label><button class="button button-dark" type="submit">Сохранить профиль</button></form></div><div class="panel-card"><h3>Безопасность</h3><p>Для смены пароля используйте ссылку восстановления, отправленную на подтверждённую почту.</p><button class="button button-outline" data-action="reset-password">Отправить ссылку смены пароля</button></div></div>
     </section>`;
 }
 
@@ -374,7 +373,7 @@ function adminPage() {
       <div class="panel-card"><span class="eyebrow">04 / VIRTUAL WALLET</span><h2>Начислить внутренний баланс</h2><form id="admin-users-form" class="form-stack"><label>Найти пользователя по email, handle или UUID<input name="search" required placeholder="Поиск пользователя"></label><button class="button button-outline" type="submit">Найти</button></form><div class="admin-user-results">${state.adminUsers.map((u)=>`<button class="admin-user-result" data-action="select-admin-user" data-id="${u.id}"><span><strong>${esc(u.display_name || u.handle || u.email || u.id)}</strong><small>${esc(u.email || u.handle || u.id)}</small></span><b>${formatPrice(u.balance || 0, 'RUB', null)} ₽</b></button>`).join('')}</div>${state.selectedAdminUser ? `<form id="admin-balance-form" class="form-stack"><input type="hidden" name="user_id" value="${state.selectedAdminUser.id}"><p class="selected-user">Выбран: ${esc(state.selectedAdminUser.email || state.selectedAdminUser.handle || state.selectedAdminUser.id)}</p><label>Сумма начисления<input name="amount" type="number" min="1" max="1000000000" step="1" required></label><label>Причина<textarea name="reason" minlength="3" maxlength="500" required></textarea></label><button class="button button-dark" type="submit">Начислить VEX</button></form>` : ''}</div>
       <div class="panel-card"><span class="eyebrow">05 / MARKET CONTROL</span><h2>Состояние рынка</h2><p>Включение и пауза торгов. Комиссия остаётся 0 до внедрения её расчёта непосредственно в атомарную торговую транзакцию.</p><div class="settings-switch"><span>Торговля включена</span><button class="switch ${state.adminSettings?.trading_enabled ? 'on' : ''}" data-action="toggle-trading" aria-pressed="${Boolean(state.adminSettings?.trading_enabled)}"></button></div><button class="button button-outline full-width" data-action="refresh-admin">Обновить показатели</button></div>
     </section>
-    <p class="admin-disclaimer">Начисления меняют только внутренние единицы VEXA. Реальные платежи, вывод средств и блокчейн-интеграции не подключены.</p>`;
+    `;
 }
 
 function modalHTML() {
@@ -382,8 +381,8 @@ function modalHTML() {
   if (state.modal.type === 'signup-success') {
     const email = esc(state.modal.email || '');
     return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card auth-modal signup-success-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="event.stopPropagation()">
-      <button class="modal-close" data-action="close-modal" aria-label="Закрыть">×</button>
-      <div class="signup-success-icon">✓</div><span class="eyebrow">VEXA / ПОЧТА</span>
+      <button class="modal-close" data-action="close-modal" aria-label="Закрыть">${svgIcon('close',18)}</button>
+      <div class="signup-success-icon">${svgIcon('check',28)}</div><span class="eyebrow">VEXA / ПОЧТА</span>
       <h2 id="modal-title">Проверь свою почту</h2>
       <p class="auth-description">Для завершения регистрации подтверди адрес электронной почты.</p>
       <div class="confirmation-address"><span>Письмо для подтверждения</span><strong>${email}</strong></div>
@@ -416,7 +415,7 @@ function modalHTML() {
         ${register ? '<label><span>Имя пользователя</span><input name="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="username" placeholder="Например, vexa_user" required><small>3–24 символа: латинские буквы, цифры и знак _.</small></label><label><span>Отображаемое имя</span><input name="display_name" maxlength="60" autocomplete="nickname" placeholder="Как тебя будут видеть другие"></label>' : ''}
         <label><span>Электронная почта</span><input name="email" type="email" autocomplete="email" placeholder="name@example.com" required></label>
         <label><span>Пароль</span><input name="password" type="password" minlength="8" autocomplete="${register ? 'new-password' : 'current-password'}" placeholder="${register ? 'Не менее 8 символов' : 'Введи свой пароль'}" required>${register ? '<small>Используй пароль длиной от 8 символов.</small>' : ''}</label>
-        ${register ? '<label><span>Повтори пароль</span><input name="password_repeat" type="password" minlength="8" autocomplete="new-password" placeholder="Введи пароль ещё раз" required></label><label class="checkbox-label"><input name="agreement" type="checkbox" required><span>Я понимаю, что VEXA сейчас работает в демо-режиме: внутренний баланс не имеет денежной стоимости, реальные пополнения и вывод отключены.</span></label>' : ''}
+        ${register ? '<label><span>Повтори пароль</span><input name="password_repeat" type="password" minlength="8" autocomplete="new-password" placeholder="Введи пароль ещё раз" required></label><label class="checkbox-label"><input name="agreement" type="checkbox" required><span>Я принимаю правила использования площадки.</span></label>' : ''}
         <button class="button button-primary full-width auth-submit" type="submit">${register ? 'Создать аккаунт' : 'Войти в аккаунт'}</button>
       </form>`}
       <div class="auth-switch">${register ? 'Уже зарегистрирован?' : 'Ещё нет аккаунта?'} <button class="text-action" data-action="auth-mode" data-mode="${register ? 'login' : 'register'}">${register ? 'Войти' : 'Создать аккаунт'}</button></div>
@@ -425,7 +424,7 @@ function modalHTML() {
     </section></div>`;
   }
   if (state.modal.type === 'sell') {
-    return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card" role="dialog" aria-modal="true" onclick="event.stopPropagation()"><button class="modal-close" data-action="close-modal">×</button><span class="eyebrow">CREATE SELL ORDER</span><h2>Выставить NFT</h2><p>Цена указывается во внутренних единицах VEXA.</p><form id="sell-form" class="form-stack"><input type="hidden" name="collectible_id" value="${state.modal.collectibleId}"><label>Цена предложения<input name="price" type="number" min="1" step="1" required></label><button class="button button-primary full-width" type="submit">Выставить на продажу</button></form></section></div>`;
+    return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card" role="dialog" aria-modal="true" onclick="event.stopPropagation()"><button class="modal-close" data-action="close-modal" aria-label="Закрыть">${svgIcon('close',18)}</button><span class="eyebrow">CREATE SELL ORDER</span><h2>Выставить NFT</h2><p>Укажи цену, по которой хочешь выставить предмет.</p><form id="sell-form" class="form-stack"><input type="hidden" name="collectible_id" value="${state.modal.collectibleId}"><label>Цена предложения<input name="price" type="number" min="1" step="1" required></label><button class="button button-primary full-width" type="submit">Выставить на продажу</button></form></section></div>`;
   }
   return '';
 }
@@ -450,7 +449,7 @@ function render() {
 
   document.documentElement.dataset.theme = state.theme;
   document.documentElement.style.colorScheme = state.theme;
-  app.innerHTML = `${headerHTML()}<div class="app-layout">${sidebarHTML()}<main class="main-content"><div class="page-container">${pageContent}<footer class="site-footer"><span>© 2026 VEXA</span><span>Digital Collectibles Marketplace</span><span>Internal demo economy · no real-money operations</span></footer></div></main></div>${mobileNavHTML()}<div id="modal-root">${modalHTML()}</div><div id="toast" role="status" aria-live="polite"></div>`;
+  app.innerHTML = `${headerHTML()}<div class="app-layout">${sidebarHTML()}<main class="main-content"><div class="page-container">${pageContent}<footer class="site-footer"><span>© 2026 VEXA</span><span>Digital Collectibles Marketplace</span><span></span></footer></div></main></div>${mobileNavHTML()}<div id="modal-root">${modalHTML()}</div><div id="toast" role="status" aria-live="polite"></div>`;
   window.__vexaMounted = true;
   if (window.__vexaBootWatchdog) clearTimeout(window.__vexaBootWatchdog);
   if (currentPage === 'detail' && state.selectedAsset && safeUrl(state.selectedAsset.model_url)) {
@@ -555,7 +554,10 @@ async function loadFavorites() {
 }
 
 async function openAsset(assetId) {
-  const asset = [...state.variants, ...(state.favoriteVariants || [])].find((item) => item.id === assetId);
+  const owned = state.portfolio.find((item) => item.asset_id === assetId || relation(item.market_assets)?.id === assetId);
+  const asset = [...state.variants, ...(state.favoriteVariants || [])].find((item) => item.id === assetId)
+    || relation(owned?.market_assets)
+    || null;
   if (!asset) { toast('Предмет не найден или больше не опубликован', 'error'); return; }
   state.selectedAsset = asset;
   state.page = 'detail';
