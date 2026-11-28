@@ -970,6 +970,7 @@ function showStartupFallback(error) {
 }
 
 async function initialize() {
+  try { window.Telegram?.WebApp?.ready(); window.Telegram?.WebApp?.expand(); } catch {}
   try {
     const session = await withStartupTimeout(
       getSession(),
