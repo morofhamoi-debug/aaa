@@ -17,7 +17,9 @@
     user: null,
     profile: null,
     wallet: null,
-    preferences: { theme: "light", language: "ru", notifications_enabled: true, price_alerts_enabled: true },
+    fxRate: null,
+    displayCurrency: "RUB",
+    preferences: { theme: "light", language: "ru", display_currency: "RUB", notifications_enabled: true, price_alerts_enabled: true },
     access: { can_access: true, can_trade: true, can_list: true, can_use_wallet: true, can_use_collectibles: true },
     isAdmin: false,
     tab: "market",
@@ -63,7 +65,17 @@
   }
   function setBalance() {
     balancePill.hidden = !state.user;
-    balanceValue.textContent = fmt(state.wallet && state.wallet.balance);
+    const rawBalance = Number(state.wallet && state.wallet.balance || 0);
+    const symbol = document.getElementById("currency-symbol");
+    if (state.displayCurrency === "USD" && state.fxRate && state.fxRate > 0) {
+      if (symbol) symbol.textContent = "$";
+      balanceValue.textContent = new Intl.NumberFormat("ru-RU", {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      }).format(rawBalance / state.fxRate);
+    } else {
+      if (symbol) symbol.textContent = "₽";
+      balanceValue.textContent = fmt(rawBalance);
+    }
   }
   function setTabActive(tab) {
     bottomNav.querySelectorAll("[data-tab]").forEach((button) => {
@@ -128,7 +140,7 @@
     const [profileResult, walletResult, prefsResult, accessResult] = await Promise.all([
       state.sb.from("market_profiles").select("id,handle,display_name,avatar_url,bio").eq("id", state.user.id).maybeSingle(),
       state.sb.from("market_wallets").select("user_id,balance,reserved_balance,currency_code").eq("user_id", state.user.id).maybeSingle(),
-      state.sb.from("market_user_preferences").select("theme,language,notifications_enabled,price_alerts_enabled").eq("user_id", state.user.id).maybeSingle(),
+      state.sb.from("market_user_preferences").select("theme,language,display_currency,notifications_enabled,price_alerts_enabled").eq("user_id", state.user.id).maybeSingle(),
       api("get_access_status")
     ]);
     if (profileResult.error) throw profileResult.error;
@@ -144,9 +156,16 @@
         language: "ru"
       });
       if (insert.error) throw insert.error;
-      state.preferences = { theme: "light", language: "ru", notifications_enabled: true, price_alerts_enabled: true };
+      state.preferences = { theme: "light", language: "ru", display_currency: "RUB", notifications_enabled: true, price_alerts_enabled: true };
     }
     state.access = accessResult || state.access;
+    state.displayCurrency = state.preferences.display_currency === "USD" ? "USD" : "RUB";
+    try {
+      const fx = await api("get_fx_rate");
+      state.fxRate = Number(fx && fx.rub_per_usd) || null;
+    } catch (error) {
+      console.warn("FX rate unavailable; displaying RUB only", error);
+    }
     setTheme(state.preferences.theme);
     setBalance();
     try {
