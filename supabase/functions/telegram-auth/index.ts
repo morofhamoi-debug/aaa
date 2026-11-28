@@ -176,6 +176,21 @@ Deno.serve(async (req: Request) => {
       authUser = data.user;
     }
 
+    // The owner Telegram ID is pre-linked to the existing owner Auth account.
+    // Telegram initData has already been signature-validated before this lookup.
+    if (!authUser) {
+      const { data: allowedAdminId, error: allowlistError } = await admin.rpc(
+        "market_resolve_admin_telegram",
+        { p_telegram_id: telegram.id },
+      );
+      if (allowlistError) throw allowlistError;
+      if (allowedAdminId) {
+        const { data, error } = await admin.auth.admin.getUserById(allowedAdminId);
+        if (error) throw error;
+        authUser = data.user;
+      }
+    }
+
     // Recover safely if an earlier request created the Auth user but failed before
     // inserting the Telegram mapping row.
     if (!authUser) {
@@ -303,9 +318,11 @@ Deno.serve(async (req: Request) => {
       }, { onConflict: "telegram_id" });
     if (mappingError) throw mappingError;
 
+    // Keep an existing owner email/account when an allowlisted Telegram ID is linked.
+    const sessionEmail = authUser.email || syntheticEmail;
     const { data: link, error: linkError } = await admin.auth.admin.generateLink({
       type: "magiclink",
-      email: syntheticEmail,
+      email: sessionEmail,
     });
     if (linkError) throw linkError;
 
