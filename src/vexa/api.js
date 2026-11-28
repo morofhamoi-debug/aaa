@@ -56,7 +56,7 @@ export async function exchangeTelegramInitData(initData) {
 export async function verifyTelegramSession(tokenHash) {
   const { data, error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
-    type: 'magiclink'
+    type: 'email'
   });
   if (error) throw normalizeError(error);
   return data;
