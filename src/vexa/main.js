@@ -726,10 +726,20 @@ async function handleSubmit(event) {
           toast('Почти готово — подтверди почту');
         }
       } else {
-        const result = await signIn(email, password);
-        state.session = result.session; state.user = result.user; state.modal = null;
-        toast('Вход выполнен');
-        await refreshAll();
+        try {
+          const result = await signIn(email, password);
+          state.session = result.session; state.user = result.user; state.modal = null;
+          toast('Вход выполнен');
+          await refreshAll();
+        } catch (error) {
+          if (/подтверди адрес электронной почты/i.test(error.message || '')) {
+            state.modal = { type: 'signup-success', email: email.trim().toLowerCase() };
+            render();
+            toast('Сначала подтверди почту — письмо можно отправить повторно');
+          } else {
+            throw error;
+          }
+        }
       }
     } else if (id === 'forgot-form') {
       await sendPasswordReset(String(fd.get('email') || ''));
