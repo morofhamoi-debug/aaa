@@ -1039,9 +1039,9 @@
     try {
       const key = input.dataset.setting;
       const value = key === "theme" ? (input.checked ? "dark" : "light") : input.checked;
-      const patch = { user_id: state.user.id };
+      const patch = {};
       patch[key] = value;
-      const result = await state.sb.from("market_user_preferences").upsert(patch);
+      const result = await state.sb.from("market_user_preferences").update(patch).eq("user_id", state.user.id);
       if (result.error) throw result.error;
       state.preferences[key] = value;
       if (key === "theme") setTheme(value);
