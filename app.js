@@ -800,8 +800,11 @@
       '<div class="field"><label>Начальная цена</label><input class="input" name="initial_price" type="number" min="0" step="1" required value="0"></div></div>' +
       '<div class="form-row"><div class="field"><label>Максимальный тираж</label><input class="input" name="max_supply" type="number" min="1" required value="100"></div>' +
       '<div class="field"><label>Создать экземпляров</label><input class="input" name="mint_quantity" type="number" min="0" required value="0"></div></div>' +
-      '<div class="field"><label>Изображение / анимация URL</label><input class="input" name="image_url" type="url" placeholder="HTTPS: GIF, WebP или видео-превью"></div>' +
-      '<div class="field"><label>3D-модель GLB URL (необязательно)</label><input class="input" name="model_url" type="url" placeholder="https://.../gift.glb"></div>' +
+      '<div class="field"><label>Изображение или анимация — GIF, WebP, MP4, WebM</label><input class="input" name="image_file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime"></div>' +
+      '<div class="field"><label>Или URL изображения / анимации</label><input class="input" name="image_url" type="url" placeholder="https://..."></div>' +
+      '<div class="field"><label>3D-модель GLB (файл)</label><input class="input" name="model_file" type="file" accept=".glb,model/gltf-binary,application/octet-stream"></div>' +
+      '<div class="field"><label>Или URL 3D-модели GLB</label><input class="input" name="model_url" type="url" placeholder="https://.../gift.glb"></div>' +
+      '<div class="helper">Файлы загружаются в защищённое хранилище. Максимальный размер — 25 МБ.</div>' +
       '<div class="field"><label>Статус</label><select class="select" name="status"><option value="draft">Черновик</option><option value="published">Опубликован</option></select></div>' +
       '<div class="helper">Ничего не создаётся автоматически. Тираж по умолчанию 0: укажите количество экземпляров только при необходимости.</div>' +
       '<button class="button primary full" type="submit" ' + (!gifts.length ? "disabled" : "") + '>Создать NFT</button></form></div>' +
@@ -938,6 +941,31 @@
     }
   }
 
+  async function uploadAdminFile(file, folder) {
+    if (!file || !file.size) return null;
+    if (file.size > 25 * 1024 * 1024) throw new Error("Файл больше 25 МБ");
+    const allowed = [
+      "image/png","image/jpeg","image/webp","image/gif","image/avif",
+      "video/mp4","video/webm","video/quicktime",
+      "model/gltf-binary","model/gltf+json","application/octet-stream"
+    ];
+    if (file.type && !allowed.includes(file.type)) {
+      throw new Error("Формат файла не поддерживается");
+    }
+    const cleanName = String(file.name || "asset").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
+    const path = "models/" + state.user.id + "/" + folder + "/" +
+      Date.now() + "-" + crypto.randomUUID() + "-" + cleanName;
+    const bucket = state.sb.storage.from("market-assets");
+    const result = await bucket.upload(path, file, {
+      cacheControl: "31536000",
+      upsert: false,
+      contentType: file.type || undefined
+    });
+    if (result.error) throw result.error;
+    const publicUrl = bucket.getPublicUrl(path).data.publicUrl;
+    return { path: path, url: publicUrl, size: file.size };
+  }
+
   async function handleSubmit(form) {
     const data = new FormData(form);
     const value = (name) => String(data.get(name) || "").trim();
@@ -1017,6 +1045,28 @@
       return renderAdminMarket();
     }
     if (formType === "create-variant") {
+      const imageFile = data.get("image_file");
+      const modelFile = data.get("model_file");
+      let imageUrl = value("image_url") || null;
+      let modelUrl = value("model_url") || null;
+      let modelSizeBytes = null;
+      const uploadedPaths = [];
+      try {
+        if (imageFile instanceof File && imageFile.size > 0) {
+          const uploaded = await uploadAdminFile(imageFile, "media");
+          imageUrl = uploaded.url;
+          uploadedPaths.push(uploaded.path);
+        }
+        if (modelFile instanceof File && modelFile.size > 0) {
+          const uploaded = await uploadAdminFile(modelFile, "models");
+          modelUrl = uploaded.url;
+          modelSizeBytes = uploaded.size;
+          uploadedPaths.push(uploaded.path);
+        }
+      } catch (error) {
+        if (uploadedPaths.length) await state.sb.storage.from("market-assets").remove(uploadedPaths);
+        throw error;
+      }
       const maxSupply = Number(value("max_supply"));
       const mintQuantity = Number(value("mint_quantity"));
       const price = Number(value("initial_price"));
@@ -1033,8 +1083,9 @@
         background: value("background") || null,
         pattern: value("pattern") || null,
         description: null,
-        image_url: value("image_url") || null,
-        model_url: value("model_url") || null,
+        image_url: imageUrl,
+        model_url: modelUrl,
+        model_size_bytes: modelSizeBytes,
         initial_price: price,
         max_supply: maxSupply,
         mint_quantity: mintQuantity,
