@@ -717,9 +717,10 @@
     screen.innerHTML =
       '<div class="panel"><form data-form="admin-search" class="form-grid">' +
       '<div class="field"><label>Telegram ID, @username, имя или внутренний ID</label>' +
-      '<input class="input" name="search" placeholder="Например, 123456789 или @username" minlength="2" required></div>' +
+      '<input class="input" name="search" placeholder="Например, 123456789 или @username" minlength="2"></div>' +
       '<button class="button primary full" type="submit">Найти пользователя</button></form></div>' +
       '<div id="admin-user-results"></div>';
+    await searchAdminUsers("");
   }
 
   async function searchAdminUsers(search) {
