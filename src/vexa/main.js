@@ -478,6 +478,8 @@ async function loadPublicData() {
   ]);
   state.collections = collections || [];
   state.variants = variants || [];
+  state.catalogHasMore = state.variants.length === 48;
+  state.catalogLoadingMore = false;
   state.listings = listings || [];
   state.trades = trades || [];
   state.publicStats = stats;
@@ -542,7 +544,7 @@ function navigate(page) {
 
 async function loadCatalog({ append = false } = {}) {
   const offset = append ? state.variants.length : 0;
-  if (append) state.catalogLoadingMore = true;
+  if (append) { state.catalogLoadingMore = true; render(); }
   try {
     const [variants, listings] = await Promise.all([
       getVariants({ search: state.catalogSearch, collectionId: state.collectionFilter, rarity: state.rarityFilter, offset }),
