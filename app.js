@@ -455,6 +455,7 @@
 
   function renderCollectionGrid() {
     const collection = state._collectionDetails;
+    const currentUserId = state.user && state.user.id;
     const all = state.collectionItems || [];
     const filter = state.collectionFilter;
     const unique = (key) => [...new Set(all.map((item) => item[key]).filter(Boolean))].sort();
@@ -476,7 +477,7 @@
         '>' + esc(value) + '</option>').join("") + '</select></div>';
     const cards = items.map((item) => {
       const asset = item.asset;
-      const isMine = item.owner_id === state.user.id;
+      const isMine = Boolean(currentUserId && item.owner_id === currentUserId);
       const label = item.listing
         ? svgIcon("star", "inline-icon") + " " + fmt(item.listing.price)
         : (isMine ? "Мой NFT" : "Нет предложения");
@@ -551,7 +552,7 @@
     const rows = tokens.map((token) => {
       const sellOrder = orders.filter((order) => order.collectible_id === token.id && order.side === "sell")
         .sort((a,b) => Number(a.price)-Number(b.price))[0];
-      const isOwner = token.owner_id === state.user.id;
+      const isOwner = Boolean(state.user && token.owner_id === state.user.id);
       let actionHtml = "";
       if (sellOrder && !isOwner) {
         actionHtml = '<button class="button primary small" type="button" data-action="buy-listing" data-id="' +
@@ -576,7 +577,7 @@
     }).join("");
     const assetBids = orders.filter((order) => order.side === "buy" && order.scope === "asset");
     const bestBid = assetBids.slice().sort((a,b) => Number(b.price)-Number(a.price))[0];
-    const myBid = assetBids.find((order) => order.user_id === state.user.id);
+    const myBid = assetBids.find((order) => state.user && order.user_id === state.user.id);
     let bidPanel = "";
     if (tokens.length && state.access && state.access.can_trade !== false) {
       bidPanel = '<div class="panel"><h3>Заявка на покупку этой модели</h3>' +
@@ -1046,8 +1047,9 @@
     return result;
   }
   async function refreshWalletOnly() {
+    const user = await requireUser();
     const result = await state.sb.from("market_wallets")
-      .select("user_id,balance,reserved_balance,currency_code").eq("user_id", state.user.id).maybeSingle();
+      .select("user_id,balance,reserved_balance,currency_code").eq("user_id", user.id).maybeSingle();
     if (result.error) throw result.error;
     state.wallet = result.data || state.wallet;
     setBalance();
@@ -1117,6 +1119,7 @@
 
   async function uploadAdminFile(file, folder) {
     if (!file || !file.size) return null;
+    const user = await requireUser();
     if (file.size > 25 * 1024 * 1024) throw new Error("Файл больше 25 МБ");
     const allowed = [
       "image/png","image/jpeg","image/webp","image/gif","image/avif",
@@ -1127,7 +1130,7 @@
       throw new Error("Формат файла не поддерживается");
     }
     const cleanName = String(file.name || "asset").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
-    const path = "models/" + state.user.id + "/" + folder + "/" +
+    const path = "models/" + user.id + "/" + folder + "/"
       Date.now() + "-" + crypto.randomUUID() + "-" + cleanName;
     const bucket = state.sb.storage.from("market-assets");
     const result = await bucket.upload(path, file, {
