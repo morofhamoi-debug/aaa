@@ -310,7 +310,7 @@ export async function uploadModel(file, userId) {
 }
 
 export function subscribeToAuth(callback) {
-  return supabase.auth.onAuthStateChange((_event, session) => callback(session));
+  return supabase.auth.onAuthStateChange((event, session) => callback(event, session));
 }
 
 export function subscribeToMarket(callback) {
