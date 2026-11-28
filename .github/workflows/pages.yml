@@ -24,6 +24,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate Mini App
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run smoke checks
+        run: |
+          node --check app.js
+          node --check config.js
+          node tests/smoke-check.mjs
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
