@@ -784,3 +784,77 @@ body { font-size: 15px; line-height: 1.55; }
   .profile-quick-link { min-height:56px; gap:8px; padding:9px; }
   .profile-quick-link strong { font-size:11px; }
 }
+ 
+
+/* VEXA first screen: Telegram or email sign-in */
+.auth-entry {
+  min-height:100svh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(28px,5vh,48px);
+  padding:calc(28px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(ellipse at 50% 12%,color-mix(in srgb,var(--accent) 15%,transparent),transparent 44%),
+    var(--bg);
+}
+.auth-entry-brand { display:flex; align-items:center; gap:12px; color:var(--text); font:800 21px Manrope,sans-serif; letter-spacing:.2em; }
+.auth-entry-brand .wordmark-mark { width:43px; height:43px; border-radius:14px; font-size:24px; }
+.auth-entry-card {
+  width:min(440px,100%);
+  padding:clamp(25px,5vw,39px);
+  border:1px solid var(--line);
+  border-radius:25px;
+  background:color-mix(in srgb,var(--bg-elevated) 94%,transparent);
+  box-shadow:0 28px 90px rgba(0,0,0,.24);
+}
+.auth-entry-card>.eyebrow { color:var(--accent); font-size:9px; font-weight:800; letter-spacing:.16em; }
+.auth-entry-card h1 { margin:13px 0 8px; color:var(--text); font:800 clamp(29px,7vw,36px)/1.13 Manrope,sans-serif; letter-spacing:-.05em; }
+.auth-entry-description { margin:0 0 25px; color:var(--muted); font-size:14px; line-height:1.6; }
+.auth-entry-button {
+  width:100%;
+  min-height:59px;
+  display:grid;
+  grid-template-columns:37px minmax(0,1fr) 24px;
+  align-items:center;
+  gap:11px;
+  padding:0 15px;
+  border:1px solid var(--line-strong);
+  border-radius:14px;
+  color:var(--text);
+  background:var(--surface);
+  text-align:left;
+  font-size:14px;
+  font-weight:750;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease;
+}
+.auth-entry-button+.auth-entry-button { margin-top:11px; }
+.auth-entry-button:active { transform:scale(.99); }
+.auth-entry-button:hover { border-color:var(--accent); background:var(--surface-2); }
+.auth-entry-button-icon { width:37px; height:37px; display:grid; place-items:center; border-radius:11px; }
+.auth-entry-button-arrow { display:grid; place-items:center; color:var(--muted); }
+.auth-entry-telegram .auth-entry-button-icon { color:#fff; background:#269bd7; }
+.auth-entry-telegram { border-color:color-mix(in srgb,#269bd7 42%,var(--line)); }
+.auth-entry-email .auth-entry-button-icon { color:var(--accent); background:var(--accent-soft); }
+.auth-entry-divider { display:flex; align-items:center; gap:13px; margin:20px 0 15px; color:var(--muted); font-size:11px; }
+.auth-entry-divider::before,.auth-entry-divider::after { content:""; height:1px; flex:1; background:var(--line); }
+.auth-entry-register { margin:17px 0 0; color:var(--muted); text-align:center; font-size:12px; }
+.auth-entry-register button { padding:2px 3px; border:0; color:var(--accent); background:transparent; font-size:12px; font-weight:800; }
+.auth-entry-foot { max-width:340px; margin:0; color:var(--muted); text-align:center; font-size:11px; line-height:1.55; }
+.telegram-launch-mark { width:59px; height:59px; display:grid; place-items:center; margin-bottom:18px; border-radius:18px; color:#fff; background:#269bd7; }
+.telegram-launch-mark .icon-svg { width:30px; height:30px; }
+.telegram-setup-note { margin:18px 0 12px; padding:13px 14px; border:1px solid var(--line); border-radius:12px; color:var(--muted-2); background:var(--surface); font-size:12px; line-height:1.55; }
+.telegram-email-fallback { margin-top:10px; }
+.avatar-button { overflow:hidden; padding:0; }
+.avatar-button img { width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+.profile-avatar { overflow:hidden; }
+.profile-avatar img { width:100%; height:100%; object-fit:cover; }
+
+@media (max-width:700px) {
+  .auth-entry { gap:28px; justify-content:center; padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); }
+  .auth-entry-card { width:100%; padding:25px 20px 22px; border-radius:21px; }
+  .auth-entry-description { margin-bottom:22px; font-size:13px; }
+  .auth-entry-button { min-height:57px; font-size:14px; }
+  .auth-entry-foot { font-size:10px; }
+}
