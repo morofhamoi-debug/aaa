@@ -15,13 +15,36 @@ const app = document.querySelector('#app');
 const state = {
   session: null, user: null, profile: null, wallet: null, rate: null, currency: 'RUB', publicStats: { collections: 0, variants: 0, trades: 0 }, adminCollections: [],
   theme: localStorage.getItem('vexa-theme') === 'light' ? 'light' : 'dark',
-  page: 'home', collections: [], variants: [], listings: [], trades: [], portfolio: [],
+  page: 'market', filtersOpen: false, collections: [], variants: [], listings: [], trades: [], portfolio: [],
   myOrders: [], favorites: new Set(), notifications: [], admin: false, adminOverview: null,
   adminSettings: null, adminUsers: [], selectedAsset: null, detailListings: [], detailTrades: [], detailCandles: [], detailTimeframe: '1h',
   busy: false, viewerDispose: null, modal: null, catalogSearch: '', collectionFilter: '', rarityFilter: '',
   catalogSort: 'newest'
 };
 
+const SVG_ICONS = Object.freeze({
+market: '<path d="M3 10.5h18l-1.6-6H4.6L3 10.5Z"/><path d="M5 10.5V20h14v-9.5"/><path d="M9 20v-6h6v6"/><path d="M3 10.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/>',
+collections: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+inventory: '<path d="m12 3 8.5 4.5v9L12 21l-8.5-4.5v-9L12 3Z"/><path d="m3.8 7.7 8.2 4.5 8.2-4.5M12 12.2V21"/>',
+favorites: '<path d="M20.8 8.7c0 5.2-8.8 10.3-8.8 10.3S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/>',
+user: '<circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+orders: '<path d="M7 7h13l-3-3M20 7l-3 3"/><path d="M17 17H4l3 3M4 17l3-3"/>',
+trades: '<path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/><path d="M16 7h3v3"/>',
+notifications: '<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+filter: '<path d="M4 7h16M7 12h10M10 17h4"/><circle cx="8" cy="7" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none"/>',
+search: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>',
+sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>',
+moon: '<path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.7 8.7 0 1 0 20.5 14.2Z"/>',
+arrow: '<path d="M7 17 17 7M7 7h10v10"/>',
+back: '<path d="m15 18-6-6 6-6M9 12h11"/>',
+close: '<path d="m6 6 12 12M18 6 6 18"/>',
+check: '<path d="m5 12 4 4L19 6"/>',
+bell: '<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>'
+});
+function svgIcon(name, size = 20) {
+  const paths = SVG_ICONS[name] || SVG_ICONS.arrow;
+  return '<svg class="icon-svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + paths + '</svg>';
+}
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[char]);
@@ -48,8 +71,9 @@ function disposeViewer() {
 }
 
 function navButton(item) {
-  return `<button class="nav-link ${state.page === item.id ? 'active' : ''}" data-action="navigate" data-page="${item.id}">
-    <span class="nav-icon">${item.icon}</span><span>${item.label}</span>
+  const active = state.page === item.id || (state.page === 'home' && item.id === 'market');
+  return `<button class="nav-link ${active ? 'active' : ''}" data-action="navigate" data-page="${item.id}">
+    <span class="nav-icon">${svgIcon(item.icon, 19)}</span><span>${item.label}</span>
   </button>`;
 }
 
@@ -62,16 +86,16 @@ function headerHTML() {
     ? `<button class="balance-pill" data-action="currency" ${rateValue() ? '' : 'disabled'} title="${esc(rateTitle)}">
         <span class="balance-currency">${moneyLabel()}</span><strong>${formatBalance(getBalance(), state.currency, rateValue())}</strong>
       </button>`
-    : '<button class="balance-pill guest-balance" data-action="register" title="Создать аккаунт VEXA"><span>Новый участник</span><strong>Создать аккаунт</strong></button>';
+    : '';
   const account = signedIn
     ? `<button class="avatar-button" data-action="navigate" data-page="profile" aria-label="Профиль">${esc(initials(state.profile?.display_name || state.profile?.handle))}</button>`
     : '<button class="button button-dark header-login" data-action="login">Войти</button>';
   return `<header class="topbar">
-    <button class="wordmark" data-action="navigate" data-page="home" aria-label="VEXA — на главную"><span class="wordmark-mark">V</span><span>VEXA</span></button>
+    <button class="wordmark" data-action="navigate" data-page="market" aria-label="VEXA — открыть маркет"><span class="wordmark-mark">V</span><span>VEXA</span></button>
     <div class="topbar-right">
       ${balance}
-      <button class="icon-button theme-toggle ${signedIn ? '' : 'guest-hide-on-mobile'}" data-action="theme" aria-label="Переключить тему" title="Тема оформления">${state.theme === 'dark' ? '☼' : '☾'}</button>
-      <button class="icon-button notification-button ${signedIn ? '' : 'guest-hide-on-mobile'}" data-action="navigate" data-page="notifications" aria-label="Уведомления">♧${state.notifications.some((n) => !n.read_at) ? '<i></i>' : ''}</button>
+      <button class="icon-button theme-toggle ${signedIn ? '' : 'guest-hide-on-mobile'}" data-action="theme" aria-label="Переключить тему" title="Тема оформления">${svgIcon(state.theme === 'dark' ? 'sun' : 'moon', 19)}</button>
+      <button class="icon-button notification-button ${signedIn ? '' : 'guest-hide-on-mobile'}" data-action="navigate" data-page="notifications" aria-label="Уведомления">${svgIcon('bell', 19)}${state.notifications.some((n) => !n.read_at) ? '<i></i>' : ''}</button>
       ${account}
     </div>
   </header>`;
@@ -79,43 +103,39 @@ function headerHTML() {
 
 function sidebarHTML() {
   const primary = [
-    { id: 'home', label: 'Обзор', icon: '⌂' },
-    { id: 'collections', label: 'Коллекции', icon: '▧' },
-    { id: 'market', label: 'Маркет', icon: '◈' }
+    { id: 'market', label: 'Маркет', icon: 'market' },
+    { id: 'collections', label: 'Коллекции', icon: 'collections' }
   ];
   const personal = [
-    { id: 'favorites', label: 'Избранное', icon: '♡', auth: true },
-    { id: 'portfolio', label: 'Мой портфель', icon: '▦', auth: true },
-    { id: 'orders', label: 'Мои ордера', icon: '⇄', auth: true },
-    { id: 'trades', label: 'История сделок', icon: '↗' },
-    { id: 'notifications', label: 'Уведомления', icon: '♧', auth: true }
+    { id: 'portfolio', label: 'Мои NFT', icon: 'inventory', auth: true },
+    { id: 'favorites', label: 'Избранное', icon: 'favorites', auth: true },
+    { id: 'orders', label: 'Мои заявки', icon: 'orders', auth: true },
+    { id: 'trades', label: 'История сделок', icon: 'trades' },
+    { id: 'notifications', label: 'Уведомления', icon: 'notifications', auth: true }
   ];
   return `<aside class="sidebar">
-    <div class="side-section-label">НАВИГАЦИЯ</div>
+    <div class="side-section-label">МАГАЗИН</div>
     ${primary.map(navButton).join('')}
-    <div class="side-section-label side-section-spaced">МОЯ ПЛОЩАДКА</div>
+    <div class="side-section-label side-section-spaced">МОЁ</div>
     ${personal.filter((item) => !item.auth || state.user).map(navButton).join('')}
     <div class="sidebar-spacer"></div>
     <div class="side-section-label">АККАУНТ</div>
-    ${state.user ? navButton({ id: 'profile', label: 'Профиль', icon: '◉' }) : '<button class="nav-link" data-action="login"><span class="nav-icon">◉</span><span>Войти / создать</span></button>'}
-    ${state.admin ? navButton({ id: 'admin', label: 'Администрирование', icon: '⌘' }) : ''}
-    <div class="sidebar-foot"><span class="online-dot"></span> Внутренняя экономика VEXA</div>
+    ${state.user ? navButton({ id: 'profile', label: 'Профиль', icon: 'user' }) : '<button class="nav-link" data-action="login"><span class="nav-icon">' + svgIcon('user',19) + '</span><span>Войти</span></button>'}
+    ${state.admin ? navButton({ id: 'admin', label: 'Администрирование', icon: 'orders' }) : ''}
   </aside>`;
 }
 function mobileNavHTML() {
   const items = [
-    { id: 'home', label: 'Главная', icon: '⌂' },
-    { id: 'market', label: 'Маркет', icon: '◈' },
-    ...(state.user ? [{ id: 'portfolio', label: 'Портфель', icon: '▦' }] : []),
-    ...(state.user ? [{ id: 'favorites', label: 'Избранное', icon: '♡' }] : [{ id: 'login', label: 'Войти', icon: '◉' }]),
-    { id: 'menu', label: 'Ещё', icon: '☷' }
+    { id: 'market', label: 'Маркет', icon: 'market' },
+    { id: 'collections', label: 'Коллекции', icon: 'collections' },
+    { id: 'portfolio', label: 'Мои NFT', icon: 'inventory' },
+    { id: 'favorites', label: 'Избранное', icon: 'favorites' },
+    { id: 'profile', label: 'Профиль', icon: 'user' }
   ];
-  const primaryPages = ['home', 'market', 'portfolio', 'favorites'];
+  const activePage = state.page === 'home' ? 'market' : state.page;
   return `<nav class="mobile-nav" aria-label="Основная навигация">${items.map((item) => {
-    const active = item.id === 'menu'
-      ? (!primaryPages.includes(state.page) && state.page !== 'detail')
-      : state.page === item.id;
-    return `<button class="${active ? 'active' : ''}" data-action="${item.id === 'login' ? 'login' : 'navigate'}" data-page="${item.id}" aria-label="${item.label}"><span>${item.icon}</span><small>${item.label}</small></button>`;
+    const active = activePage === item.id;
+    return `<button class="${active ? 'active' : ''}" data-action="navigate" data-page="${item.id}" aria-label="${item.label}" title="${item.label}"><span>${svgIcon(item.icon, 21)}</span><small>${item.label}</small></button>`;
   }).join('')}</nav>`;
 }
 function rarityTag(rarity) {
