@@ -110,6 +110,8 @@ async function verifyInitData(raw: string, botToken: string) {
     lastName,
     photoUrl,
     displayName: [firstName, lastName].filter(Boolean).join(" ").slice(0, 60),
+    authHash: receivedHash.toLowerCase(),
+    authDate,
   };
 }
 
@@ -139,6 +141,23 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    // Remove expired hashes occasionally, then atomically claim this signed
+    // initData hash. The unique key rejects replayed Telegram launch payloads.
+    await admin.from("market_telegram_auth_nonces")
+      .delete()
+      .lt("expires_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
+    const { error: nonceError } = await admin
+      .from("market_telegram_auth_nonces")
+      .insert({
+        auth_hash: telegram.authHash,
+        expires_at: new Date((telegram.authDate + 15 * 60) * 1000).toISOString(),
+      });
+    if (nonceError?.code === "23505") {
+      return json({ error: "Telegram session was already used. Reopen VEXA from Telegram." }, 409);
+    }
+    if (nonceError) throw nonceError;
 
     const syntheticEmail = `tg_${telegram.id}@telegram.vexa.invalid`;
     const fallbackHandle = `tg_${telegram.id}`;
@@ -296,7 +315,8 @@ Deno.serve(async (req: Request) => {
       "Telegram user ID is invalid",
       "Telegram account has no first name",
     ].includes(message);
-    const safeMessage = authFailure ? message : "Unable to sign in with Telegram";
-    return json({ error: safeMessage }, authFailure ? 401 : 500);
+    const replayFailure = message === "Telegram session was already used. Reopen VEXA from Telegram.";
+    const safeMessage = authFailure || replayFailure ? message : "Unable to sign in with Telegram";
+    return json({ error: safeMessage }, authFailure ? 401 : replayFailure ? 409 : 500);
   }
 });
