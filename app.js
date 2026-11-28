@@ -376,7 +376,7 @@
     let orders = [];
     if (tokenIds.length) {
       const ordersResult = await state.sb.from("market_orders")
-        .select("id,collectible_id,price,user_id,side").eq("status", "open").in("collectible_id", tokenIds);
+        .select("id,collectible_id,price,user_id,side,scope,asset_id").eq("status", "open").in("collectible_id", tokenIds);
       if (ordersResult.error) throw ordersResult.error;
       orders = ordersResult.data || [];
     }
@@ -393,9 +393,7 @@
           '<input class="input" name="price" type="number" min="1" step="1" placeholder="Цена" required>' +
           '<button class="button small" type="submit">Продать</button></form>';
       } else if (!isOwner && !sellOrder) {
-        actionHtml = '<form class="mini-order-form" data-form="bid" data-id="' + token.id + '">' +
-          '<input class="input" name="price" type="number" min="1" step="1" placeholder="Моя заявка" required>' +
-          '<button class="button soft small" type="submit">Предложить</button></form>';
+        actionHtml = '<span class="badge">Нет предложения</span>';
       } else {
         actionHtml = '<span class="badge green">Ваша заявка</span>';
       }
@@ -405,8 +403,26 @@
         '</div><div class="instance-sub">' + ownerText + (sellOrder ? " · " + fmt(sellOrder.price) : "") +
         "</div></div><div class=\"instance-actions\">" + actionHtml + "</div></div>";
     }).join("");
+    const assetBids = orders.filter((order) => order.side === "buy" && order.scope === "asset");
+    const bestBid = assetBids.slice().sort((a,b) => Number(b.price)-Number(a.price))[0];
+    const myBid = assetBids.find((order) => order.user_id === state.user.id);
+    let bidPanel = "";
+    if (tokens.length && state.access && state.access.can_trade !== false) {
+      bidPanel = '<div class="panel"><h3>Заявка на покупку этой модели</h3>' +
+        '<div class="stat-row"><span>Лучшая заявка</span><strong>' +
+        (bestBid ? fmt(bestBid.price) : "Пока нет") + '</strong></div>' +
+        (myBid
+          ? '<div class="helper">Ваша заявка: ' + fmt(myBid.price) + '. Средства зарезервированы до исполнения или отмены.</div>' +
+            '<button class="button ghost full" style="margin-top:9px" type="button" data-action="cancel-order" data-id="' + myBid.id + '">Отменить мою заявку</button>'
+          : '<form class="form-grid" data-form="asset-bid" data-id="' + tokens[0].id + '">' +
+            '<div class="field"><label>Максимальная цена покупки</label><input class="input" name="price" type="number" min="1" step="1" required placeholder="Укажите цену"></div>' +
+            '<button class="button primary full" type="submit">Создать заявку</button></form>') +
+        '<div class="helper">Заявка действует на любой экземпляр этой модели. Когда продавец выставит подходящий по цене NFT, заявка исполнится автоматически.</div></div>';
+    } else if (tokens.length) {
+      bidPanel = '<div class="warning-box">Создание заявок на покупку для этого аккаунта ограничено.</div>';
+    }
     const controls = state.access && state.access.can_trade !== false
-      ? '<div class="helper">Заявка на покупку резервирует указанную сумму до исполнения или отмены заявки.</div>'
+      ? '<div class="helper">Покупка по объявлению — конкретного экземпляра. Заявка выше относится ко всей модели.</div>'
       : '<div class="warning-box">Торговля для этого аккаунта ограничена.</div>';
     screen.innerHTML =
       '<div class="panel asset-hero">' + mediaHtml(asset) +
@@ -418,6 +434,7 @@
       '</strong></div><div class="stat-row"><span>Начальная цена</span><strong>' + fmt(asset.initial_price) +
       '</strong></div><div class="stat-row"><span>Экземпляров создано</span><strong>' + tokens.length +
       "</strong></div></div>" +
+      bidPanel +
       '<div class="section-heading"><h2>График цены</h2><span class="section-note">По совершённым сделкам</span></div>' +
       '<div class="chart-wrap"><div class="chart-times">' +
       ["1m","5m","15m","1h","4h","1d"].map((tf) => '<button type="button" data-action="timeframe" data-tf="' + tf +
@@ -577,7 +594,7 @@
     setHeader("Мои заявки", "Открытые ордера", true);
     loading("Загружаем заявки…");
     const result = await state.sb.from("market_orders")
-      .select("id,collectible_id,side,price,status,created_at,reserved_amount")
+      .select("id,collectible_id,side,scope,price,status,created_at,reserved_amount")
       .eq("user_id", state.user.id).eq("status", "open")
       .order("created_at", { ascending: false });
     if (result.error) throw result.error;
@@ -596,7 +613,7 @@
       const asset = item && (assets.data || []).find((a) => a.id === item.asset_id);
       return '<div class="instance-row"><div class="instance-number">#' + esc(item ? item.serial_number : "—") +
         '</div><div class="instance-info"><div class="instance-name">' + esc(asset ? asset.name : "NFT") +
-        '</div><div class="instance-sub">' + (order.side === "buy" ? "Заявка на покупку" : "Выставлен на продажу") +
+        '</div><div class="instance-sub">' + (order.side === "buy" ? (order.scope === "asset" ? "Заявка на модель" : "Заявка на покупку") : "Выставлен на продажу") +
         " · " + fmt(order.price) + "</div></div><button class=\"button ghost small\" type=\"button\" data-action=\"cancel-order\" data-id=\"" +
         order.id + "\">Отменить</button></div>";
     }).join("") + "</div>";
@@ -805,12 +822,13 @@
       empty("≡", "Журнал пока пуст", "Административные действия будут отображаться здесь.");
   }
 
-  async function submitOrder(collectibleId, side, price) {
+  async function submitOrder(collectibleId, side, price, scope) {
     if (!state.access.can_trade) throw new Error("Торговля для этого аккаунта ограничена");
     if (side === "sell" && !state.access.can_list) throw new Error("Выставление NFT запрещено для этого аккаунта");
     const result = await api("submit_order", {
       collectible_id: collectibleId,
       side: side,
+      scope: scope || "collectible",
       price: Number(price),
       idempotency_key: crypto.randomUUID()
     });
@@ -840,7 +858,7 @@
     if (action === "open-inventory") return openInventory(button.dataset.id);
     if (action === "buy-listing") {
       button.disabled = true;
-      await submitOrder(button.dataset.id, "buy", Number(button.dataset.price));
+      await submitOrder(button.dataset.id, "buy", Number(button.dataset.price), "collectible");
       return openAsset(state.currentAsset);
     }
     if (action === "cancel-order") {
@@ -848,6 +866,7 @@
       await api("cancel_order", { order_id: button.dataset.id });
       await refreshWalletOnly();
       toast("Заявка отменена");
+      if (state.view === "asset") return openAsset(state.currentAsset);
       return renderMyOrders();
     }
     if (action === "my-orders") return renderMyOrders();
@@ -889,10 +908,15 @@
     const data = new FormData(form);
     const value = (name) => String(data.get(name) || "").trim();
     const formType = form.dataset.form;
-    if (formType === "bid" || formType === "sell") {
+    if (formType === "asset-bid" || formType === "sell") {
       const price = Number(value("price"));
       if (!Number.isSafeInteger(price) || price <= 0) throw new Error("Введите корректную цену");
-      await submitOrder(form.dataset.id, formType === "bid" ? "buy" : "sell", price);
+      await submitOrder(
+        form.dataset.id,
+        formType === "asset-bid" ? "buy" : "sell",
+        price,
+        formType === "asset-bid" ? "asset" : "collectible"
+      );
       return openAsset(state.currentAsset);
     }
     if (formType === "admin-search") return searchAdminUsers(value("search"));
