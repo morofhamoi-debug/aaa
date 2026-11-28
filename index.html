@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f4f8">
+  <meta name="description" content="Маркетплейс цифровых коллекционных подарков">
+  <title>Gift Market</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+  <script src="./config.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button id="back-button" class="icon-button back-button" type="button" aria-label="Назад" hidden>‹</button>
+      <div class="topbar-title-wrap">
+        <div class="brand-mark">✦</div>
+        <div>
+          <div id="page-title" class="page-title">Рынок</div>
+          <div id="page-subtitle" class="page-subtitle">Коллекционные подарки</div>
+        </div>
+      </div>
+      <div id="balance-pill" class="balance-pill" hidden>
+        <span class="balance-caption">Баланс</span>
+        <strong id="balance-value">0</strong>
+      </div>
+    </header>
+
+    <main id="screen" class="screen" aria-live="polite">
+      <div class="loading-state"><div class="loader"></div><span>Загрузка…</span></div>
+    </main>
+
+    <nav id="bottom-nav" class="bottom-nav" hidden aria-label="Основная навигация">
+      <button class="nav-button active" type="button" data-tab="market">
+        <span class="nav-icon">▦</span><span>Рынок</span>
+      </button>
+      <button class="nav-button" type="button" data-tab="my_nft">
+        <span class="nav-icon">✧</span><span>Мои NFT</span>
+      </button>
+      <button class="nav-button" type="button" data-tab="settings">
+        <span class="nav-icon">⚙</span><span>Настройки</span>
+      </button>
+    </nav>
+    <div id="toast" class="toast" role="status"></div>
+  </div>
+</body>
+</html>
