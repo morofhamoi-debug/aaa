@@ -26,6 +26,8 @@
     currentCollection: null,
     currentAsset: null,
     currentTimeframe: "1h",
+    collectionFilter: { sort: "price_asc", model: "all", background: "all", pattern: "all" },
+    collectionItems: [],
     inventory: [],
     adminSelectedUser: null,
     adminCollections: [],
@@ -86,7 +88,12 @@
         '" camera-controls auto-rotate rotation-per-second="18deg" shadow-intensity="0.7" loading="lazy" ar></model-viewer></div>';
     }
     if (item && item.image_url) {
-      return '<div class="gift-visual ' + cls + '"><img src="' + esc(item.image_url) +
+      const url = String(item.image_url);
+      if (/\.(mp4|webm|mov)(?:[?#].*)?$/i.test(url)) {
+        return '<div class="gift-visual ' + cls + '"><video src="' + esc(url) +
+          '" autoplay muted loop playsinline preload="metadata"></video></div>';
+      }
+      return '<div class="gift-visual ' + cls + '"><img src="' + esc(url) +
         '" alt="' + esc(item.name || "Подарок") + '" loading="lazy"></div>';
     }
     if (item && item.cover_url) {
@@ -261,7 +268,7 @@
     const collection = collectionResult.data;
     if (!collection) throw new Error("Коллекция не найдена");
     const assetsResult = await state.sb.from("market_assets")
-      .select("id,name,description,image_url,model_url,rarity,initial_price,max_supply,collection_id,status")
+      .select("id,name,description,image_url,model_url,rarity,initial_price,max_supply,collection_id,status,metadata,created_at")
       .eq("collection_id", id).eq("status", "published").order("created_at", { ascending: false });
     if (assetsResult.error) throw assetsResult.error;
     const assets = assetsResult.data || [];
@@ -287,19 +294,65 @@
       if (orderResult.error) throw orderResult.error;
       orders = orderResult.data || [];
     }
-    const cards = assets.map((asset) => {
+    state.collectionItems = assets.map((asset) => {
       const tokens = collectibles.filter((item) => item.asset_id === asset.id);
       const asks = orders.filter((order) => tokens.some((item) => item.id === order.collectible_id));
       asks.sort((a,b) => Number(a.price)-Number(b.price));
-      const minPrice = asks.length ? Number(asks[0].price) : null;
-      return '<button class="gift-card" type="button" data-action="open-asset" data-id="' + asset.id + '">' +
-        mediaHtml(asset) + '<div class="gift-card-body"><div class="gift-title">' + esc(asset.name) + '</div>' +
-        '<div class="gift-meta">' + esc(asset.rarity || "Коллекционный подарок") + " · " + tokens.length + " экземпляров</div>" +
-        '<span class="price-pill">' + (minPrice === null ? "Нет предложений" : "от " + fmt(minPrice)) + "</span></div></button>";
-    }).join("");
-    screen.innerHTML = '<div class="section-heading"><h2>' + esc(collection.name) +
-      '</h2><span class="section-note">' + assets.length + " моделей</span></div><div class=\"gift-grid\">" + cards + "</div>";
+      const metadata = asset.metadata || {};
+      return Object.assign({}, asset, {
+        tokenCount: tokens.length,
+        minPrice: asks.length ? Number(asks[0].price) : null,
+        modelFilter: String(metadata.model || metadata.variant || asset.name || "Без модели"),
+        backgroundFilter: String(metadata.background || metadata.bg || "Без фона"),
+        patternFilter: String(metadata.pattern || "Без узора")
+      });
+    });
+    state.collectionFilter = { sort: "price_asc", model: "all", background: "all", pattern: "all" };
     state._collectionDetails = collection;
+    renderCollectionGrid();
+  }
+
+  function renderCollectionGrid() {
+    const collection = state._collectionDetails;
+    const all = state.collectionItems || [];
+    const filter = state.collectionFilter;
+    const unique = (key) => [...new Set(all.map((item) => item[key]).filter(Boolean))].sort();
+    let items = all.filter((item) =>
+      (filter.model === "all" || item.modelFilter === filter.model) &&
+      (filter.background === "all" || item.backgroundFilter === filter.background) &&
+      (filter.pattern === "all" || item.patternFilter === filter.pattern)
+    );
+    items.sort((a,b) => {
+      if (filter.sort === "price_desc") return (b.minPrice ?? -1) - (a.minPrice ?? -1);
+      if (filter.sort === "newest") return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      if (a.minPrice === null) return 1;
+      if (b.minPrice === null) return -1;
+      return a.minPrice - b.minPrice;
+    });
+    const makeOptions = (label,key,values) => '<div class="field"><label>' + label +
+      '</label><select class="select" data-filter="' + key + '"><option value="all">Все</option>' +
+      values.map((value) => '<option value="' + esc(value) + '" ' + (filter[key] === value ? "selected" : "") +
+        '>' + esc(value) + '</option>').join("") + '</select></div>';
+    const cards = items.map((asset) =>
+      '<button class="gift-card" type="button" data-action="open-asset" data-id="' + asset.id + '">' +
+      mediaHtml(asset) + '<div class="gift-card-body"><div class="gift-title">' + esc(asset.name) + '</div>' +
+      '<div class="gift-meta">' + esc(asset.rarity || "Коллекционный подарок") + " · " + asset.tokenCount + " экземпляров</div>" +
+      '<span class="price-pill">' + (asset.minPrice === null ? "Нет предложений" : "от " + fmt(asset.minPrice)) +
+      '</span></div></button>'
+    ).join("");
+    screen.innerHTML = '<div class="section-heading"><h2>' + esc(collection.name) +
+      '</h2><span class="section-note">' + items.length + " из " + all.length + " моделей</span></div>" +
+      '<div class="panel"><div class="form-grid">' +
+      '<div class="field"><label>Цена</label><select class="select" data-filter="sort">' +
+      '<option value="price_asc">Сначала дешевле</option><option value="price_desc">Сначала дороже</option>' +
+      '<option value="newest">Сначала новые</option></select></div>' +
+      makeOptions("Модель","model",unique("modelFilter")) +
+      makeOptions("Фон","background",unique("backgroundFilter")) +
+      makeOptions("Узор","pattern",unique("patternFilter")) +
+      '</div></div>' +
+      (cards ? '<div class="gift-grid">' + cards + '</div>' : empty("⌕","Ничего не найдено","Измените параметры фильтрации."));
+    const sortSelect = screen.querySelector('[data-filter="sort"]');
+    if (sortSelect) sortSelect.value = filter.sort;
   }
 
   async function openAsset(id) {
@@ -679,6 +732,9 @@
     const collections = state.adminCollections;
     const gifts = state.adminGiftTypes;
     const variants = state.adminVariants;
+    const statusButton = (type,item) => '<button class="button small ghost" type="button" data-action="catalog-status" data-type="' + type +
+      '" data-id="' + item.id + '" data-status="' + (item.status === "published" ? "draft" : "published") + '">' +
+      (item.status === "published" ? "Снять с публикации" : "Опубликовать") + '</button>';
     const collectionOptions = collections.map((c) => '<option value="' + c.id + '">' + esc(c.name) + "</option>").join("");
     const giftOptions = gifts.map((g) => '<option value="' + g.id + '">' + esc(g.name) + "</option>").join("");
     screen.innerHTML =
@@ -711,14 +767,14 @@
       '<button class="button primary full" type="submit" ' + (!gifts.length ? "disabled" : "") + '>Создать NFT</button></form></div>' +
       '<div class="panel"><h3>Существующие коллекции</h3>' +
       (collections.length ? collections.map((c) => '<div class="stat-row"><span>' + esc(c.name) + '<small class="helper" style="display:block">' +
-        esc(c.slug) + "</small></span><span class=\"badge\">" + esc(c.status) + "</span></div>").join("") :
+        esc(c.slug) + "</small></span><span><span class=\"badge\">" + esc(c.status) + "</span> " + statusButton("collection",c) + "</span></div>").join("") :
         '<div class="helper">Коллекции ещё не созданы.</div>') + "</div>" +
       '<div class="panel"><h3>Модели и NFT</h3>' +
       (gifts.length ? gifts.map((g) => '<div class="stat-row"><span>' + esc(g.name) + '<small class="helper" style="display:block">' +
-        esc(g.slug) + "</small></span><span class=\"badge\">" + esc(g.status) + "</span></div>").join("") :
+        esc(g.slug) + "</small></span><span><span class=\"badge\">" + esc(g.status) + "</span> " + statusButton("gift_type",g) + "</span></div>").join("") :
         '<div class="helper">Модели подарков ещё не созданы.</div>') +
       (variants.length ? variants.map((v) => '<div class="stat-row"><span>' + esc(v.name) + '<small class="helper" style="display:block">' +
-        esc(v.rarity || "") + "</small></span><span class=\"badge\">" + esc(v.status) + "</span></div>").join("") : "") +
+        esc(v.rarity || "") + "</small></span><span><span class=\"badge\">" + esc(v.status) + "</span> " + statusButton("asset",v) + "</span></div>").join("") : "") +
       "</div>";
   }
 
@@ -805,6 +861,16 @@
       await api("admin_lift_restrictions", { user_id: button.dataset.id });
       toast("Ограничения сняты");
       return openAdminUser(button.dataset.id);
+    }
+    if (action === "catalog-status") {
+      const status = button.dataset.status;
+      await api("admin_set_catalog_status", {
+        target_type: button.dataset.type,
+        target_id: button.dataset.id,
+        status: status
+      });
+      toast(status === "published" ? "Опубликовано" : "Снято с публикации");
+      return renderAdminCatalog();
     }
     if (action === "toggle-trading") {
       const enabled = button.dataset.enabled === "true";
@@ -938,6 +1004,12 @@
     Promise.resolve(handleSubmit(form)).catch(showError);
   });
   screen.addEventListener("change", async (event) => {
+    const filter = event.target.closest("[data-filter]");
+    if (filter) {
+      state.collectionFilter[filter.dataset.filter] = filter.value;
+      renderCollectionGrid();
+      return;
+    }
     const input = event.target.closest("[data-setting]");
     if (!input) return;
     try {
