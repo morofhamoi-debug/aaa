@@ -281,6 +281,14 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
           p_actor_id: actorId, p_asset_id: body.asset_id, p_quantity: body.quantity,
         });
         if (error) throw error;
+        const metadata = {
+          model: validText(body.model_name, 80) ? body.model_name.trim() : body.name.trim(),
+          background: validText(body.background, 80) ? body.background.trim() : null,
+          pattern: validText(body.pattern, 80) ? body.pattern.trim() : null,
+        };
+        const { error: metadataError } = await ctx.supabaseAdmin
+          .from("market_assets").update({ metadata }).eq("id", data.id);
+        if (metadataError) throw metadataError;
         result = data;
       } else if (action === "admin_adjust_balance") {
         if (!isUuid(body.user_id) || !Number.isSafeInteger(body.amount) ||
