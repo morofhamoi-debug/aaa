@@ -27,6 +27,9 @@
     back: null,
     currentCollection: null,
     currentAsset: null,
+    currentCollectible: null,
+    assetReturnView: "market",
+    assetReturnCollection: null,
     currentTimeframe: "1h",
     collectionFilter: { sort: "price_asc", model: "all", background: "all", pattern: "all" },
     collectionItems: [],
@@ -275,17 +278,17 @@
   }
 
   async function openCollection(id) {
-    const previous = state.view === "asset" ? "collection" : state.view;
     state.currentCollection = id;
     state.view = "collection";
     state.back = () => renderMarket();
-    setHeader("Коллекция", "Подарки и предложения", true);
+    setHeader("Коллекция", "Предложения и экземпляры", true);
     loading("Загружаем подарки…");
     const collectionResult = await state.sb.from("market_collections")
       .select("id,name,description,cover_url").eq("id", id).maybeSingle();
     if (collectionResult.error) throw collectionResult.error;
     const collection = collectionResult.data;
     if (!collection) throw new Error("Коллекция не найдена");
+
     const assetsResult = await state.sb.from("market_assets")
       .select("id,name,description,image_url,model_url,rarity,initial_price,max_supply,collection_id,status,metadata,created_at")
       .eq("collection_id", id).eq("status", "published").order("created_at", { ascending: false });
@@ -299,33 +302,47 @@
         empty("✧", "Пока нет подарков", "Администратор ещё не добавил модели в эту коллекцию.");
       return;
     }
-    const ids = assets.map((asset) => asset.id);
+
+    const assetIds = assets.map((asset) => asset.id);
     const collectibleResult = await state.sb.from("market_collectibles")
-      .select("id,asset_id,serial_number,owner_id").in("asset_id", ids).not("owner_id", "is", null);
+      .select("id,asset_id,serial_number,owner_id,created_at")
+      .in("asset_id", assetIds).not("owner_id", "is", null)
+      .order("serial_number", { ascending: true });
     if (collectibleResult.error) throw collectibleResult.error;
     const collectibles = collectibleResult.data || [];
     const collectibleIds = collectibles.map((item) => item.id);
     let orders = [];
     if (collectibleIds.length) {
       const orderResult = await state.sb.from("market_orders")
-        .select("id,collectible_id,price,user_id").eq("side", "sell").eq("status", "open")
+        .select("id,collectible_id,price,user_id,side,scope,asset_id")
+        .eq("side", "sell").eq("status", "open")
         .in("collectible_id", collectibleIds);
       if (orderResult.error) throw orderResult.error;
       orders = orderResult.data || [];
     }
-    state.collectionItems = assets.map((asset) => {
-      const tokens = collectibles.filter((item) => item.asset_id === asset.id);
-      const asks = orders.filter((order) => tokens.some((item) => item.id === order.collectible_id));
-      asks.sort((a,b) => Number(a.price)-Number(b.price));
+
+    const assetById = new Map(assets.map((asset) => [asset.id, asset]));
+    const orderByCollectible = new Map(orders.map((order) => [order.collectible_id, order]));
+    state.collectionItems = collectibles.map((token) => {
+      const asset = assetById.get(token.asset_id);
+      if (!asset) return null;
       const metadata = asset.metadata || {};
-      return Object.assign({}, asset, {
-        tokenCount: tokens.length,
-        minPrice: asks.length ? Number(asks[0].price) : null,
+      const listing = orderByCollectible.get(token.id) || null;
+      return {
+        id: token.id,
+        token: token,
+        asset: asset,
+        serial_number: token.serial_number,
+        owner_id: token.owner_id,
+        listing: listing,
+        minPrice: listing ? Number(listing.price) : null,
         modelFilter: String(metadata.model || metadata.variant || asset.name || "Без модели"),
         backgroundFilter: String(metadata.background || metadata.bg || "Без фона"),
-        patternFilter: String(metadata.pattern || "Без узора")
-      });
-    });
+        patternFilter: String(metadata.pattern || "Без узора"),
+        created_at: token.created_at || asset.created_at
+      };
+    }).filter(Boolean);
+
     state.collectionFilter = { sort: "price_asc", model: "all", background: "all", pattern: "all" };
     state._collectionDetails = collection;
     renderCollectionGrid();
@@ -336,7 +353,7 @@
     const all = state.collectionItems || [];
     const filter = state.collectionFilter;
     const unique = (key) => [...new Set(all.map((item) => item[key]).filter(Boolean))].sort();
-    let items = all.filter((item) =>
+    const items = all.filter((item) =>
       (filter.model === "all" || item.modelFilter === filter.model) &&
       (filter.background === "all" || item.backgroundFilter === filter.background) &&
       (filter.pattern === "all" || item.patternFilter === filter.pattern)
@@ -352,15 +369,22 @@
       '</label><select class="select" data-filter="' + key + '"><option value="all">Все</option>' +
       values.map((value) => '<option value="' + esc(value) + '" ' + (filter[key] === value ? "selected" : "") +
         '>' + esc(value) + '</option>').join("") + '</select></div>';
-    const cards = items.map((asset) =>
-      '<button class="gift-card" type="button" data-action="open-asset" data-id="' + asset.id + '">' +
-      mediaHtml(asset) + '<div class="gift-card-body"><div class="gift-title">' + esc(asset.name) + '</div>' +
-      '<div class="gift-meta">' + esc(asset.rarity || "Коллекционный подарок") + " · " + asset.tokenCount + " экземпляров</div>" +
-      '<span class="price-pill">' + (asset.minPrice === null ? "Нет предложений" : "от " + fmt(asset.minPrice)) +
-      '</span></div></button>'
-    ).join("");
+    const cards = items.map((item) => {
+      const asset = item.asset;
+      const isMine = item.owner_id === state.user.id;
+      const label = item.listing
+        ? "★ " + fmt(item.listing.price)
+        : (isMine ? "Мой NFT" : "Нет предложения");
+      return '<button class="gift-card" type="button" data-action="open-collectible" data-id="' + item.id + '">' +
+        mediaHtml(asset) +
+        '<div class="serial-ribbon">#' + esc(item.serial_number) + '</div>' +
+        '<div class="gift-card-body"><div class="gift-title">' + esc(asset.name) + '</div>' +
+        '<div class="gift-meta">' + esc(asset.rarity || "Коллекционный подарок") +
+        (isMine ? " · Ваш экземпляр" : "") + '</div>' +
+        '<span class="price-pill">' + label + '</span></div></button>';
+    }).join("");
     screen.innerHTML = '<div class="section-heading"><h2>' + esc(collection.name) +
-      '</h2><span class="section-note">' + items.length + " из " + all.length + " моделей</span></div>" +
+      '</h2><span class="section-note">' + items.length + " экземпляров</span></div>" +
       '<div class="panel"><div class="form-grid">' +
       '<div class="field"><label>Цена</label><select class="select" data-filter="sort">' +
       '<option value="price_asc">Сначала дешевле</option><option value="price_desc">Сначала дороже</option>' +
@@ -374,11 +398,30 @@
     if (sortSelect) sortSelect.value = filter.sort;
   }
 
-  async function openAsset(id) {
+  async function openCollectible(collectibleId) {
+    const result = await state.sb.from("market_collectibles")
+      .select("id,asset_id").eq("id", collectibleId).maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data) throw new Error("Экземпляр NFT не найден");
+    return openAsset(result.data.asset_id, result.data.id);
+  }
+
+  async function openAsset(id, selectedCollectibleId) {
+    if (state.view !== "asset") {
+      state.assetReturnView = state.view;
+      state.assetReturnCollection = state.currentCollection;
+    }
     state.currentAsset = id;
+    if (selectedCollectibleId) state.currentCollectible = selectedCollectibleId;
     state.view = "asset";
-    const collectionId = state.currentCollection;
-    state.back = () => openCollection(collectionId);
+    const returnView = state.assetReturnView;
+    const returnCollection = state.assetReturnCollection;
+    state.back = () => {
+      if (returnView === "inventory") return openInventory(returnCollection);
+      if (returnView === "collection") return openCollection(returnCollection);
+      if (returnView === "my_nft") return renderMyNft();
+      return renderMarket();
+    };
     setHeader("Подарок", "Предложения и график цены", true);
     loading("Загружаем подарок…");
     const assetResult = await state.sb.from("market_assets")
@@ -399,6 +442,7 @@
       if (ordersResult.error) throw ordersResult.error;
       orders = ordersResult.data || [];
     }
+    const selectedToken = tokens.find((token) => token.id === state.currentCollectible) || null;
     const rows = tokens.map((token) => {
       const sellOrder = orders.filter((order) => order.collectible_id === token.id && order.side === "sell")
         .sort((a,b) => Number(a.price)-Number(b.price))[0];
@@ -413,6 +457,9 @@
           '<button class="button small" type="submit">Продать</button></form>';
       } else if (!isOwner && !sellOrder) {
         actionHtml = '<span class="badge">Нет предложения</span>';
+      } else if (isOwner && sellOrder) {
+        actionHtml = '<button class="button ghost small" type="button" data-action="cancel-order" data-id="' +
+          sellOrder.id + '">Снять с продажи</button>';
       } else {
         actionHtml = '<span class="badge green">Ваша заявка</span>';
       }
@@ -447,7 +494,9 @@
       '<div class="panel asset-hero">' + mediaHtml(asset) +
       '<div><div class="gift-title">' + esc(asset.name) + '</div><div class="asset-description">' +
       esc(asset.description || "Коллекционный цифровой подарок") + '</div>' +
-      '<div class="price-pill">' + esc(asset.rarity || "Коллекционный") + "</div></div></div>" +
+      '<div class="price-pill">' + esc(asset.rarity || "Коллекционный") + "</div>" +
+      (selectedToken ? '<div class="asset-description">Выбран экземпляр #' + esc(selectedToken.serial_number) + '</div>' : "") +
+      '</div></div>' +
       '<div class="panel"><div class="stat-row"><span>Редкость</span><strong>' + esc(asset.rarity || "—") +
       '</strong></div><div class="stat-row"><span>Тираж</span><strong>' + fmt(asset.max_supply) +
       '</strong></div><div class="stat-row"><span>Начальная цена</span><strong>' + fmt(asset.initial_price) +
@@ -558,6 +607,7 @@
     const collection = state.inventory.find((item) => item.collection.id === collectionId);
     if (!collection) return;
     const items = state.inventory.filter((item) => item.collection.id === collectionId);
+    state.currentCollection = collectionId;
     state.view = "inventory";
     state.back = () => renderMyNft();
     setHeader(collection.collection.name, "Ваша коллекция", true);
@@ -885,25 +935,26 @@
     const action = button.dataset.action;
     if (action === "open-collection") return openCollection(button.dataset.id);
     if (action === "open-asset") return openAsset(button.dataset.id);
+    if (action === "open-collectible") return openCollectible(button.dataset.id);
     if (action === "open-owned-asset") {
-      const item = state.inventory.find((x) => x.asset.id === button.dataset.id);
+      const item = state.inventory.find((x) => x.id === button.dataset.id);
       if (item) {
         state.currentCollection = item.collection.id;
-        return openAsset(button.dataset.id);
+        return openAsset(item.asset.id, item.id);
       }
     }
     if (action === "open-inventory") return openInventory(button.dataset.id);
     if (action === "buy-listing") {
       button.disabled = true;
       await submitOrder(button.dataset.id, "buy", Number(button.dataset.price), "collectible");
-      return openAsset(state.currentAsset);
+      return openAsset(state.currentAsset, state.currentCollectible);
     }
     if (action === "cancel-order") {
       button.disabled = true;
       await api("cancel_order", { order_id: button.dataset.id });
       await refreshWalletOnly();
       toast("Заявка отменена");
-      if (state.view === "asset") return openAsset(state.currentAsset);
+      if (state.view === "asset") return openAsset(state.currentAsset, state.currentCollectible);
       return renderMyOrders();
     }
     if (action === "my-orders") return renderMyOrders();
