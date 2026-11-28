@@ -616,7 +616,6 @@ body { font-size: 15px; line-height: 1.55; }
   .hero-panel p { max-width:350px; font-size:14px; line-height:1.7; }
   .hero-actions { width:100%; align-items:stretch; gap:10px; }
   .hero-actions .button { width:100%; min-height:52px; font-size:15px; }
-  .hero-demo-note { display:block; max-width:260px; margin-top:12px; font-size:10px; }
   .hero-object { right:-70px; bottom:35px; opacity:.22; transform:scale(.72); }
   .metric-strip>div { min-height:84px; padding:14px; gap:7px; }
   .metric-strip span { font-size:10px; line-height:1.35; }
