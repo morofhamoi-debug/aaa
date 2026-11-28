@@ -40,6 +40,28 @@ export async function callMarket(action, payload = {}) {
   return data?.data ?? data;
 }
 
+export async function exchangeTelegramInitData(initData) {
+  if (typeof initData !== 'string' || !initData.trim()) {
+    throw new Error('Telegram не передал данные Mini App. Открой VEXA из Telegram-бота.');
+  }
+  const { data, error } = await supabase.functions.invoke(VEXA.telegramAuthFunction, {
+    body: { init_data: initData }
+  });
+  if (error) throw normalizeError(error);
+  if (data?.error) throw normalizeError(data.error);
+  if (!data?.token_hash) throw new Error('Telegram не вернул токен входа. Попробуй ещё раз.');
+  return data;
+}
+
+export async function verifyTelegramSession(tokenHash) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: 'magiclink'
+  });
+  if (error) throw normalizeError(error);
+  return data;
+}
+
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw normalizeError(error);
