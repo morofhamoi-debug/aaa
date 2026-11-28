@@ -272,6 +272,16 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         });
         if (error) throw error;
         result = data;
+      } else if (action === "admin_mint_collectibles") {
+        if (!isUuid(body.asset_id) || !Number.isSafeInteger(body.quantity) ||
+            body.quantity < 1 || body.quantity > 1000) {
+          return response({ error: "Invalid mint quantity" }, 400);
+        }
+        const { data, error } = await ctx.supabaseAdmin.rpc("market_admin_mint_collectibles", {
+          p_actor_id: actorId, p_asset_id: body.asset_id, p_quantity: body.quantity,
+        });
+        if (error) throw error;
+        result = data;
       } else if (action === "admin_adjust_balance") {
         if (!isUuid(body.user_id) || !Number.isSafeInteger(body.amount) ||
             body.amount === 0 || Math.abs(body.amount) > 1000000000 || !validText(body.reason, 500)) {
@@ -284,16 +294,20 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         if (error) throw error;
         result = data;
       } else if (action === "admin_update_settings") {
-        if (typeof body.trading_enabled !== "boolean") {
-          return response({ error: "Invalid market settings" }, 400);
-        }
         const { data: current, error: currentError } =
           await ctx.supabaseAdmin.rpc("market_get_market_status");
         if (currentError) throw currentError;
+        const tradingEnabled = typeof body.trading_enabled === "boolean"
+          ? body.trading_enabled : current?.trading_enabled === true;
+        const commissionBps = body.commission_bps === undefined
+          ? Number(current?.commission_bps || 0) : body.commission_bps;
+        if (!Number.isSafeInteger(commissionBps) || commissionBps < 0 || commissionBps > 1000) {
+          return response({ error: "Invalid market settings" }, 400);
+        }
         const { data, error } = await ctx.supabaseAdmin.rpc("market_admin_update_settings", {
           p_actor_id: actorId,
-          p_trading_enabled: body.trading_enabled,
-          p_commission_bps: Number(current?.commission_bps || 0),
+          p_trading_enabled: tradingEnabled,
+          p_commission_bps: commissionBps,
         });
         if (error) throw error;
         result = data;
@@ -380,6 +394,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       "Trading is paused", "Invalid collection fields", "Collection not found",
       "Invalid gift fields", "Invalid variant parameters", "Mint quantity exceeds max supply",
       "Invalid balance adjustment", "Invalid market settings",
+      "Invalid mint quantity", "Mint quantity exceeds max supply",
       "Invalid catalog status", "Catalog item not found",
       "Adjustment would spend reserved funds", "Invalid restriction parameters",
       "Trading is not available for this account", "Listing is not available for this account",
