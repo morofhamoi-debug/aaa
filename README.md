@@ -12,6 +12,7 @@ A lightweight Telegram Mini App for collectible digital gifts. The project is in
 - My NFT inventory grouped by collection.
 - Candlestick chart based on completed trades only. No fake candle or price data is generated.
 - Admin dashboard, user lookup, credits/debits, temporary/permanent restrictions, catalog management, minting, market pause, fee configuration and audit log.
+- Telegram native haptic feedback on button presses, selection changes and success/error results.
 - GIF/WebP/AVIF/MP4/WebM previews and GLB 3D models uploaded to Supabase Storage.
 - Light theme by default, optional dark theme.
 - RUB/USD balance display switch using the Bank of Russia USD/RUB rate. This changes display only, not the underlying balance.
@@ -80,9 +81,7 @@ The Mini App will not authenticate a user outside Telegram because there is no T
 
 ## Owner admin access
 
-The database has a legacy admin record, but no Telegram account was linked to it when the app was prepared. The first Telegram login must **not** automatically become an administrator.
-
-After the owner opens the Mini App, the Telegram ID is shown in Settings. Link that exact Telegram account to the existing owner admin record before using the admin panel. Do not grant admin access by changing a frontend flag.
+The supplied owner Telegram ID is linked server-side to the existing owner Auth/admin record through `private.market_admin_telegram_allowlist`. This mapping is used only after Telegram's signed `initData` has passed server-side HMAC verification. No first-user auto-promotion is used. Do not grant admin access by changing a frontend flag.
 
 ## Trading model
 
