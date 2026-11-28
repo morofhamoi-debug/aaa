@@ -809,8 +809,15 @@
       (gifts.length ? gifts.map((g) => '<div class="stat-row"><span>' + esc(g.name) + '<small class="helper" style="display:block">' +
         esc(g.slug) + "</small></span><span><span class=\"badge\">" + esc(g.status) + "</span> " + statusButton("gift_type",g) + "</span></div>").join("") :
         '<div class="helper">Модели подарков ещё не созданы.</div>') +
-      (variants.length ? variants.map((v) => '<div class="stat-row"><span>' + esc(v.name) + '<small class="helper" style="display:block">' +
-        esc(v.rarity || "") + "</small></span><span><span class=\"badge\">" + esc(v.status) + "</span> " + statusButton("asset",v) + "</span></div>").join("") : "") +
+      (variants.length ? variants.map((v) =>
+        '<div class="panel"><div class="stat-row"><span>' + esc(v.name) +
+        '<small class="helper" style="display:block">' + esc(v.rarity || "") +
+        " · тираж " + esc(v.max_supply) + "</small></span><span><span class=\"badge\">" +
+        esc(v.status) + "</span> " + statusButton("asset",v) + "</span></div>" +
+        '<form class="form-row" data-form="mint-asset" data-id="' + v.id + '">' +
+        '<input class="input" type="number" name="quantity" min="1" max="1000" step="1" required placeholder="Количество">' +
+        '<button class="button small" type="submit">Выпустить ещё</button></form></div>').join("") :
+        '<div class="helper">NFT-модели ещё не созданы.</div>') +
       "</div>";
   }
 
@@ -821,11 +828,15 @@
     const settings = await api("admin_get_settings");
     screen.innerHTML =
       '<div class="panel"><h3>Торговля</h3><div class="stat-row"><span>Статус рынка</span><strong>' +
-      (settings.trading_enabled ? "Включён" : "Приостановлен") + '</strong></div><div class="stat-row"><span>Комиссия</span><strong>' +
-      (Number(settings.commission_bps || 0) / 100).toFixed(2).replace(".", ",") + "%</strong></div>" +
+      (settings.trading_enabled ? "Включён" : "Приостановлен") + '</strong></div>' +
       '<button class="button ' + (settings.trading_enabled ? "danger" : "primary") + ' full" type="button" data-action="toggle-trading" data-enabled="' +
       (!settings.trading_enabled) + '">' + (settings.trading_enabled ? "Приостановить торги" : "Возобновить торги") + "</button></div>" +
-      '<div class="helper">Приостановка блокирует новые сделки. Уже созданные заявки останутся в системе до отмены или истечения срока.</div>';
+      '<div class="panel"><h3>Комиссия маркетплейса</h3><form class="form-grid" data-form="admin-commission">' +
+      '<div class="field"><label>Комиссия за сделку, % (от 0 до 10)</label><input class="input" name="commission" type="number" min="0" max="10" step="0.1" required value="' +
+      (Number(settings.commission_bps || 0) / 100).toFixed(1) + '"></div>' +
+      '<button class="button primary full" type="submit">Сохранить комиссию</button></form>' +
+      '<div class="helper">Комиссия удерживается из суммы продавца и отдельно учитывается в журнале площадки.</div></div>' +
+      '<div class="helper">Приостановка блокирует новые торговые операции. Открытые заявки сохраняются.</div>';
   }
 
   async function renderAdminAudit() {
@@ -979,6 +990,27 @@
       });
       toast("Модель подарка добавлена");
       return renderAdminCatalog();
+    }
+    if (formType === "mint-asset") {
+      const quantity = Number(value("quantity"));
+      if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 1000) {
+        throw new Error("Количество должно быть от 1 до 1000");
+      }
+      const result = await api("admin_mint_collectibles", {
+        asset_id: form.dataset.id,
+        quantity: quantity
+      });
+      toast("Выпущено экземпляров: " + fmt(result && result.minted));
+      return renderAdminCatalog();
+    }
+    if (formType === "admin-commission") {
+      const percent = Number(value("commission"));
+      if (!Number.isFinite(percent) || percent < 0 || percent > 10) {
+        throw new Error("Комиссия должна быть от 0 до 10%");
+      }
+      await api("admin_update_settings", { commission_bps: Math.round(percent * 100) });
+      toast("Комиссия сохранена");
+      return renderAdminMarket();
     }
     if (formType === "create-variant") {
       const maxSupply = Number(value("max_supply"));
