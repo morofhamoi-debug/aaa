@@ -1,5 +1,6 @@
 import {
   callMarket, getSession, signUp, signIn, signOut, sendPasswordReset, updatePassword,
+  exchangeTelegramInitData, verifyTelegramSession,
   getProfile, getWallet, getCollections, getVariants, getListings, getPortfolio, getFavoriteVariants,
   getMyOrders, getTrades, getFavorites, setFavorite, getNotifications,
   markNotificationRead, getExchangeRate, getCandles, submitOrder, cancelOrder, checkAdmin,
@@ -15,7 +16,7 @@ const app = document.querySelector('#app');
 const state = {
   session: null, user: null, profile: null, wallet: null, rate: null, currency: 'RUB', publicStats: { collections: 0, variants: 0, trades: 0 }, adminCollections: [],
   theme: localStorage.getItem('vexa-theme') === 'light' ? 'light' : 'dark',
-  page: 'market', filtersOpen: false, collections: [], variants: [], listings: [], trades: [], portfolio: [],
+  page: 'auth', filtersOpen: false, telegramBusy: false, collections: [], variants: [], listings: [], trades: [], portfolio: [],
   myOrders: [], favorites: new Set(), notifications: [], admin: false, adminOverview: null,
   adminSettings: null, adminUsers: [], selectedAsset: null, detailListings: [], detailTrades: [], detailCandles: [], detailTimeframe: '1h',
   busy: false, viewerDispose: null, modal: null, catalogSearch: '', collectionFilter: '', rarityFilter: '',
@@ -39,7 +40,9 @@ arrow: '<path d="M7 17 17 7M7 7h10v10"/>',
 back: '<path d="m15 18-6-6 6-6M9 12h11"/>',
 close: '<path d="m6 6 12 12M18 6 6 18"/>',
 check: '<path d="m5 12 4 4L19 6"/>',
-bell: '<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>'
+bell: '<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+telegram: '<path d="m21.5 4.5-3.1 15c-.2 1.1-.8 1.4-1.7.9l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.9 9-8.1c.4-.4-.1-.6-.6-.3L6.3 13.2l-4.7-1.5c-1-.3-1-1 .2-1.5l18.3-7.1c.9-.3 1.7.2 1.4 1.4Z"/>'
 });
 function svgIcon(name, size = 20) {
   const paths = SVG_ICONS[name] || SVG_ICONS.arrow;
@@ -88,7 +91,7 @@ function headerHTML() {
       </button>`
     : '';
   const account = signedIn
-    ? `<button class="avatar-button" data-action="navigate" data-page="profile" aria-label="Профиль">${esc(initials(state.profile?.display_name || state.profile?.handle))}</button>`
+    ? `<button class="avatar-button" data-action="navigate" data-page="profile" aria-label="Профиль">${safeUrl(state.profile?.avatar_url) ? `<img src="${esc(safeUrl(state.profile.avatar_url))}" alt="">` : esc(initials(state.profile?.display_name || state.profile?.handle))}</button>`
     : '<button class="button button-dark header-login" data-action="login">Войти</button>';
   return `<header class="topbar">
     <button class="wordmark" data-action="navigate" data-page="market" aria-label="VEXA — открыть маркет"><span class="wordmark-mark">V</span><span>VEXA</span></button>
@@ -178,6 +181,30 @@ function emptyState(title, text, action = '') {
 
 function sectionHeader(title, subtitle = '', action = '') {
   return `<div class="section-header"><div><h2>${title}</h2>${subtitle ? `<p>${subtitle}</p>` : ''}</div>${action}</div>`;
+}
+
+function authEntryPage() {
+  return `<main class="auth-entry">
+    <div class="auth-entry-brand"><span class="wordmark-mark">V</span><strong>VEXA</strong></div>
+    <section class="auth-entry-card">
+      <span class="eyebrow">DIGITAL COLLECTIBLES MARKETPLACE</span>
+      <h1>Войти в VEXA</h1>
+      <p class="auth-entry-description">Выбери удобный способ входа в аккаунт.</p>
+      <button class="auth-entry-button auth-entry-telegram" data-action="telegram-login" ${state.telegramBusy ? 'disabled' : ''}>
+        <span class="auth-entry-button-icon">${svgIcon('telegram',23)}</span>
+        <span>${state.telegramBusy ? 'Подключаем Telegram…' : 'Войти через Telegram'}</span>
+        <span class="auth-entry-button-arrow">${svgIcon('arrow',17)}</span>
+      </button>
+      <button class="auth-entry-button auth-entry-email" data-action="login">
+        <span class="auth-entry-button-icon">${svgIcon('mail',21)}</span>
+        <span>Войти через почту</span>
+        <span class="auth-entry-button-arrow">${svgIcon('arrow',17)}</span>
+      </button>
+      <div class="auth-entry-divider"><span>или</span></div>
+      <p class="auth-entry-register">Впервые в VEXA? <button data-action="register">Создать аккаунт</button></p>
+    </section>
+    <p class="auth-entry-foot">Один аккаунт для коллекций, избранного и личного инвентаря.</p>
+  </main>`;
 }
 
 function homePage() {
@@ -349,7 +376,7 @@ function profilePage() {
   ];
   return `<section class="page-heading"><div><span class="eyebrow">VEXA / ACCOUNT</span><h1>Профиль</h1><p>Настройки аккаунта и личные разделы.</p></div></section>
     <section class="profile-quick-links" aria-label="Личные разделы">${quickLinks.map((item) => `<button class="profile-quick-link" data-action="navigate" data-page="${item.id}"><span>${svgIcon(item.icon,19)}</span><strong>${item.label}</strong>${svgIcon('arrow',15)}</button>`).join('')}</section>
-    <section class="profile-layout"><div class="profile-card"><div class="profile-avatar">${esc(initials(profile.display_name || profile.handle))}</div><div><h2>${esc(profile.display_name || 'Участник')}</h2><p>@${esc(profile.handle || '')}</p><small>ID: ${esc(state.user.id)}</small></div><div class="profile-separator"></div><div class="profile-stat"><span>Дата регистрации</span><strong>${formatDate(state.user.created_at)}</strong></div><div class="profile-stat"><span>Баланс</span><strong>${formatBalance(getBalance(), state.currency, rateValue())} ${moneyLabel()}</strong></div><div class="profile-stat"><span>Экземпляры NFT</span><strong>${state.portfolio.length}</strong></div><button class="button button-outline full-width" data-action="logout">Выйти из аккаунта</button></div>
+    <section class="profile-layout"><div class="profile-card"><div class="profile-avatar">${safeUrl(profile.avatar_url) ? `<img src="${esc(safeUrl(profile.avatar_url))}" alt="">` : esc(initials(profile.display_name || profile.handle))}</div><div><h2>${esc(profile.display_name || 'Участник')}</h2><p>@${esc(state.user.app_metadata?.telegram_username || profile.handle || '')}</p><small>ID: ${esc(state.user.app_metadata?.telegram_id || state.user.id)}</small></div><div class="profile-separator"></div><div class="profile-stat"><span>Дата регистрации</span><strong>${formatDate(state.user.created_at)}</strong></div><div class="profile-stat"><span>Баланс</span><strong>${formatBalance(getBalance(), state.currency, rateValue())} ${moneyLabel()}</strong></div><div class="profile-stat"><span>Экземпляры NFT</span><strong>${state.portfolio.length}</strong></div><button class="button button-outline full-width" data-action="logout">Выйти из аккаунта</button></div>
       <div class="profile-settings"><div class="panel-card"><h3>Публичный профиль</h3><form id="profile-form" class="form-stack"><label>Отображаемое имя<input name="display_name" maxlength="60" value="${esc(profile.display_name || '')}" required></label><label>О себе<textarea name="bio" maxlength="300" rows="3">${esc(profile.bio || '')}</textarea></label><button class="button button-dark" type="submit">Сохранить профиль</button></form></div><div class="panel-card"><h3>Безопасность</h3><p>Для смены пароля используйте ссылку восстановления, отправленную на подтверждённую почту.</p><button class="button button-outline" data-action="reset-password">Отправить ссылку смены пароля</button></div></div>
     </section>`;
 }
@@ -385,6 +412,18 @@ function adminPage() {
 
 function modalHTML() {
   if (!state.modal) return '';
+  if (state.modal.type === 'telegram-launch-required') {
+    const botUsername = String(VEXA.telegramBotUsername || '').replace(/^@/, '');
+    return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card auth-modal telegram-launch-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="event.stopPropagation()">
+      <button class="modal-close" data-action="close-modal" aria-label="Закрыть">${svgIcon('close',18)}</button>
+      <div class="telegram-launch-mark">${svgIcon('telegram',29)}</div>
+      <span class="eyebrow">VEXA / TELEGRAM</span>
+      <h2 id="modal-title">Открой VEXA в Telegram</h2>
+      <p class="auth-description">Telegram передаёт ID, имя, username и фотографию только внутри запущенного Mini App. Открой VEXA через кнопку бота в Telegram.</p>
+      ${botUsername ? `<button class="button button-primary full-width" data-action="telegram-open-bot">Открыть Telegram</button>` : '<div class="telegram-setup-note">Ссылка на Mini App появится здесь после подключения твоего бота.</div>'}
+      <button class="button button-outline full-width telegram-email-fallback" data-action="login">Войти через почту</button>
+    </section></div>`;
+  }
   if (state.modal.type === 'signup-success') {
     const email = esc(state.modal.email || '');
     return `<div class="modal-backdrop" data-action="close-modal"><section class="modal-card auth-modal signup-success-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="event.stopPropagation()">
@@ -451,6 +490,13 @@ function modalHTML() {
 function render() {
   disposeViewer();
   const currentPage = state.page === 'home' ? 'market' : state.page;
+  document.documentElement.dataset.theme = state.theme;
+  document.documentElement.style.colorScheme = state.theme;
+  if (currentPage === 'auth' && !state.user) {
+    app.innerHTML = `${authEntryPage()}<div id="modal-root">${modalHTML()}</div><div id="toast" role="status" aria-live="polite"></div>`;
+    window.__vexaMounted = true;
+    return;
+  }
   let pageContent = '';
   if (currentPage === 'home') pageContent = homePage();
   else if (currentPage === 'collections') pageContent = collectionsPage();
@@ -466,11 +512,8 @@ function render() {
   else if (currentPage === 'admin') pageContent = adminPage();
   else pageContent = homePage();
 
-  document.documentElement.dataset.theme = state.theme;
-  document.documentElement.style.colorScheme = state.theme;
   app.innerHTML = `${headerHTML()}<div class="app-layout">${sidebarHTML()}<main class="main-content"><div class="page-container">${pageContent}<footer class="site-footer"><span>© 2026 VEXA</span></footer></div></main></div>${mobileNavHTML()}<div id="modal-root">${modalHTML()}</div><div id="toast" role="status" aria-live="polite"></div>`;
   window.__vexaMounted = true;
-  if (window.__vexaBootWatchdog) clearTimeout(window.__vexaBootWatchdog);
   if (currentPage === 'detail' && state.selectedAsset && safeUrl(state.selectedAsset.model_url)) {
     const container = document.querySelector('#detail-viewer');
     state.viewerDispose = mountGiftViewer(container, safeUrl(state.selectedAsset.model_url));
@@ -535,6 +578,7 @@ async function reloadAccountAndRender() {
 
 function navigate(page) {
   if (page === 'home') page = 'market';
+  if (!state.user && page !== 'auth') { openAuth('login'); return; }
   if (page === 'login') { openAuth('login'); return; }
   if (['portfolio', 'favorites', 'orders', 'activity', 'profile', 'notifications'].includes(page) && !state.user) {
     openAuth('login'); return;
@@ -605,12 +649,54 @@ async function refreshAll() {
   render();
 }
 
+async function signInWithTelegram() {
+  const webApp = window.Telegram?.WebApp;
+  const initData = typeof webApp?.initData === 'string' ? webApp.initData : '';
+  if (!initData) {
+    if (VEXA.telegramBotUsername) {
+      const username = String(VEXA.telegramBotUsername).replace(/^@/, '');
+      window.location.href = 'https://t.me/' + encodeURIComponent(username) + '?startapp=vexa';
+      return;
+    }
+    state.modal = { type: 'telegram-launch-required' };
+    render();
+    return;
+  }
+
+  state.telegramBusy = true;
+  render();
+  try {
+    const result = await exchangeTelegramInitData(initData);
+    const auth = await verifyTelegramSession(result.token_hash);
+    state.session = auth.session;
+    state.user = auth.user;
+    state.page = 'market';
+    state.modal = null;
+    try { webApp.ready(); webApp.expand(); } catch {}
+    await refreshAll();
+    toast('Вход через Telegram выполнен');
+  } catch (error) {
+    state.modal = null;
+    render();
+    toast(error.message || 'Не удалось войти через Telegram', 'error');
+  } finally {
+    state.telegramBusy = false;
+    if (state.page === 'auth') render();
+  }
+}
+
 async function handleClick(event) {
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
   try {
     if (action === 'navigate') navigate(target.dataset.page);
+    else if (action === 'telegram-login') await signInWithTelegram();
+    else if (action === 'telegram-open-bot') {
+      const username = String(VEXA.telegramBotUsername || '').replace(/^@/, '');
+      if (!username) throw new Error('Бот ещё не подключён');
+      window.location.href = 'https://t.me/' + encodeURIComponent(username) + '?startapp=vexa';
+    }
     else if (action === 'login') openAuth('login');
     else if (action === 'register') openAuth('register');
     else if (action === 'resend-confirmation') {
@@ -655,7 +741,7 @@ async function handleClick(event) {
       if (!confirm('Отменить открытую заявку? Резерв по заявке на покупку будет освобождён.')) return;
       await cancelOrder(target.dataset.id); toast('Заявка отменена'); await refreshAll();
     } else if (action === 'logout') {
-      await signOut(); toast('Вы вышли из аккаунта'); state.page = 'home'; state.modal = null; await refreshAll();
+      await signOut(); toast('Вы вышли из аккаунта'); state.page = 'auth'; state.modal = null; await refreshAll();
     } else if (action === 'reset-password') {
       await sendPasswordReset(state.user.email); toast('Письмо для восстановления отправлено');
     } else if (action === 'notification-read') {
@@ -717,6 +803,7 @@ async function handleSubmit(event) {
         if (result.session) {
           state.session = result.session;
           state.user = result.user || result.session.user;
+          state.page = 'market';
           state.modal = null;
           await refreshAll();
           toast('Аккаунт создан. Добро пожаловать в VEXA!');
@@ -728,7 +815,7 @@ async function handleSubmit(event) {
       } else {
         try {
           const result = await signIn(email, password);
-          state.session = result.session; state.user = result.user; state.modal = null;
+          state.session = result.session; state.user = result.user; state.page = 'market'; state.modal = null;
           toast('Вход выполнен');
           await refreshAll();
         } catch (error) {
@@ -883,16 +970,9 @@ function showStartupFallback(error) {
 
 async function initialize() {
   try {
-    render();
-  } catch (error) {
-    showStartupFallback(error);
-    return;
-  }
-
-  try {
     const session = await withStartupTimeout(
       getSession(),
-      8000,
+      6000,
       'Проверка сессии заняла слишком много времени'
     );
     state.session = session;
@@ -901,39 +981,51 @@ async function initialize() {
     console.error('VEXA session restore failed:', error);
     state.session = null;
     state.user = null;
-    toast('Не удалось восстановить вход. Сайт откроется без авторизации.', 'error');
   }
 
-  const results = await Promise.allSettled([
-    withStartupTimeout(loadPublicData(), 10000, 'Загрузка каталога заняла слишком много времени'),
-    withStartupTimeout(loadAccount(), 10000, 'Загрузка аккаунта заняла слишком много времени')
-  ]);
-
-  for (const result of results) {
-    if (result.status === 'rejected') {
-      console.error('VEXA startup data request failed:', result.reason);
-      toast(result.reason?.message || 'Не удалось загрузить часть данных', 'error');
-    }
-  }
+  state.page = state.user ? 'market' : 'auth';
 
   try {
     render();
   } catch (error) {
     showStartupFallback(error);
+    return;
+  }
+
+  if (state.user) {
+    const results = await Promise.allSettled([
+      withStartupTimeout(loadPublicData(), 10000, 'Загрузка каталога заняла слишком много времени'),
+      withStartupTimeout(loadAccount(), 10000, 'Загрузка аккаунта заняла слишком много времени')
+    ]);
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        console.error('VEXA startup data request failed:', result.reason);
+        toast(result.reason?.message || 'Не удалось загрузить часть данных', 'error');
+      }
+    }
+    try { render(); } catch (error) { showStartupFallback(error); }
   }
 
   subscribeToAuth(async (event, session) => {
     const previous = state.user?.id;
     state.session = session;
     state.user = session?.user || null;
+    state.page = state.user ? 'market' : 'auth';
     if (event === 'PASSWORD_RECOVERY') {
       state.modal = { type: 'password-reset' };
       render();
     }
     if (previous !== state.user?.id) {
-      try { await loadAccount(); render(); } catch (error) { toast(error.message, 'error'); }
+      try {
+        await loadAccount();
+        if (state.user) await loadPublicData();
+        render();
+      } catch (error) {
+        toast(error.message, 'error');
+      }
     }
   });
+
   const unsubscribe = subscribeToMarket(() => {
     clearTimeout(initialize.marketTimer);
     initialize.marketTimer = setTimeout(() => refreshAll().catch(() => {}), 650);
