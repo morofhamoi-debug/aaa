@@ -152,7 +152,7 @@ function variantCard(asset) {
     <div class="nft-art ${image ? 'has-image' : ''}">
       ${image ? `<img src="${esc(image)}" alt="" loading="lazy">` : '<div class="art-placeholder"><span>V</span><i></i></div>'}
       <span class="edition-badge">${esc(collection)}</span>
-      ${state.favorites.has(asset.id) ? '<span class="favorite-indicator">${svgIcon('favorites',17)}</span>' : ''}
+      ${state.favorites.has(asset.id) ? `<span class="favorite-indicator">${svgIcon('favorites',17)}</span>` : ''}
       ${rarityTag(asset.rarity)}
     </div>
     <div class="nft-meta"><div><span class="eyebrow">${esc(giftType || collection)}</span><h3>${esc(asset.name)}</h3></div><span class="supply-count">${Number(asset.max_supply).toLocaleString('ru-RU')} шт.</span></div>
