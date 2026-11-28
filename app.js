@@ -679,7 +679,8 @@
     screen.innerHTML = '<div class="instance-list">' + orders.map((order) => {
       const item = (items.data || []).find((i) => i.id === order.collectible_id);
       const asset = item && (assets.data || []).find((a) => a.id === item.asset_id);
-      return '<div class="instance-row"><div class="instance-number">#' + esc(item ? item.serial_number : "—") +
+      return '<div class="instance-row"><div class="instance-number">' +
+        (order.scope === "asset" ? "ВСЕ" : "#" + esc(item ? item.serial_number : "—")) +
         '</div><div class="instance-info"><div class="instance-name">' + esc(asset ? asset.name : "NFT") +
         '</div><div class="instance-sub">' + (order.side === "buy" ? (order.scope === "asset" ? "Заявка на модель" : "Заявка на покупку") : "Выставлен на продажу") +
         " · " + fmt(order.price) + "</div></div><button class=\"button ghost small\" type=\"button\" data-action=\"cancel-order\" data-id=\"" +
