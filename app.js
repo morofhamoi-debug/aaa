@@ -652,6 +652,7 @@
       '<div class="admin-tile"><div class="admin-tile-icon">✧</div><strong>' + fmt(stats.collections) + '</strong><span>Коллекции</span></div>' +
       '<div class="admin-tile"><div class="admin-tile-icon">▣</div><strong>' + fmt(stats.collectibles) + '</strong><span>Экземпляры NFT</span></div>' +
       '<div class="admin-tile"><div class="admin-tile-icon">◈</div><strong>' + fmt(stats.open_orders) + '</strong><span>Открытые заявки</span></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">₽</div><strong>' + fmt(stats.fees) + '</strong><span>Комиссия площадки</span></div>' +
       '<div class="admin-tile"><div class="admin-tile-icon">▤</div><strong>' + fmt(stats.trade_volume) + '</strong><span>Объём торгов</span></div></div>' +
       '<div class="admin-menu">' +
       '<button type="button" data-action="admin-users"><span>♙</span><span>Пользователи<small>Поиск, баланс, блокировки и история</small></span><b>›</b></button>' +
@@ -792,6 +793,9 @@
       '<div class="field"><label>Модель подарка</label><select class="select" name="gift_type_id" required>' +
       (giftOptions || '<option value="">Сначала добавьте модель подарка</option>') + '</select></div>' +
       '<div class="field"><label>Название NFT</label><input class="input" name="name" maxlength="120" required placeholder="Название варианта"></div>' +
+      '<div class="field"><label>Модель для фильтра</label><input class="input" name="model_name" maxlength="80" placeholder="Например, Хамзат Чимаев"></div>' +
+      '<div class="form-row"><div class="field"><label>Фон</label><input class="input" name="background" maxlength="80" placeholder="Синий"></div>' +
+      '<div class="field"><label>Узор</label><input class="input" name="pattern" maxlength="80" placeholder="Звёзды"></div></div>' +
       '<div class="form-row"><div class="field"><label>Редкость</label><input class="input" name="rarity" maxlength="40" required placeholder="Rare"></div>' +
       '<div class="field"><label>Начальная цена</label><input class="input" name="initial_price" type="number" min="0" step="1" required value="0"></div></div>' +
       '<div class="form-row"><div class="field"><label>Максимальный тираж</label><input class="input" name="max_supply" type="number" min="1" required value="100"></div>' +
@@ -1025,6 +1029,9 @@
         gift_type_id: value("gift_type_id"),
         name: value("name"),
         rarity: value("rarity"),
+        model_name: value("model_name") || value("name"),
+        background: value("background") || null,
+        pattern: value("pattern") || null,
         description: null,
         image_url: value("image_url") || null,
         model_url: value("model_url") || null,
