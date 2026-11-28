@@ -48,6 +48,38 @@
   function fmt(value) {
     return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Number(value || 0));
   }
+
+  const iconPaths = {
+    sparkles: '<path d="M12 3.5 13.7 9l5.8 3-5.8 2.8L12 20.5l-1.7-5.7L4.5 12l5.8-3L12 3.5Z"/><path d="m19 2 .6 2.1L22 5l-2.4.9L19 8l-.6-2.1L16 5l2.4-.9L19 2Z"/>',
+    send: '<path d="m21 3-7.2 18-3.8-7.8L2 9.5 21 3Z"/><path d="m21 3-11 10.2"/>',
+    ban: '<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>',
+    star: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
+    search: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
+    moon: '<path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.7 8.7 0 1 0 20.5 14.2Z"/>',
+    bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/>',
+    chart: '<path d="M4 19V5"/><path d="M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/>',
+    user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/>',
+    arrows: '<path d="M7 7h13l-3-3"/><path d="m20 7-3 3"/><path d="M17 17H4l3 3"/><path d="m4 17 3-3"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
+    shield: '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>',
+    grid: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>',
+    gem: '<path d="m6 3-4 6 10 12L22 9l-4-6H6Z"/><path d="M2 9h20"/><path d="m6 3 6 18 6-18"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.8 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.8-1l-1.7.7-1.4-2.4 1.4-1.1a8 8 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.8-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.8 1l1.7-.7 1.4 2.4-1.4 1.1a8 8 0 0 1 0 2Z"/>',
+    box: '<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M3 8v9l9 5 9-5V8"/><path d="M12 13v9"/>',
+    layers: '<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>',
+    wallet: '<rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 8V6a3 3 0 0 1 3-3h12"/><path d="M16 13h5"/><path d="M16 13h.01"/>',
+    list: '<path d="M9 6h12"/><path d="M9 12h12"/><path d="M9 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/>',
+    alert: '<path d="M10.3 4.3 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>'
+  };
+  function svgIcon(name, extraClass) {
+    const aliases = { "✧":"sparkles", "✈":"send", "⛔":"ban", "⌕":"search", "↔":"arrows", "≡":"list", "⚠":"alert" };
+    const key = aliases[name] || name || "sparkles";
+    const path = iconPaths[key] || iconPaths.sparkles;
+    const cls = extraClass ? " " + extraClass : "";
+    return '<svg class="svg-icon' + cls + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + path + "</svg>";
+  }
+
   function hapticImpact(style) {
     try {
       const feedback = tg && tg.HapticFeedback;
@@ -105,7 +137,7 @@
     screen.innerHTML = '<div class="loading-state"><div class="loader"></div><span>' + esc(label || "Загрузка…") + "</span></div>";
   }
   function empty(icon, title, text) {
-    return '<div class="empty-state"><div class="empty-icon">' + (icon || "✧") + '</div><div class="empty-title">' +
+    return '<div class="empty-state"><div class="empty-icon">' + svgIcon(icon || "sparkles", "empty-icon-svg") + '</div><div class="empty-title">' +
       esc(title) + '</div><div class="empty-text">' + esc(text) + "</div></div>";
   }
   function setHeader(title, subtitle, canBack) {
@@ -162,7 +194,7 @@
       return '<div class="gift-visual ' + cls + '"><img src="' + esc(item.cover_url) +
         '" alt="' + esc(item.name || "Коллекция") + '" loading="lazy"></div>';
     }
-    return '<div class="gift-visual ' + cls + '"><div class="gift-placeholder">✧</div></div>';
+    return '<div class="gift-visual ' + cls + '"><div class="gift-placeholder">' + svgIcon("sparkles") + '</div></div>';
   }
   function getErrorMessage(error) {
     if (!error) return "Неизвестная ошибка";
@@ -186,11 +218,36 @@
     if (response.data && response.data.error) throw new Error(response.data.error);
     return response.data ? response.data.data : null;
   }
+  async function requireUser() {
+    if (state.user && state.user.id) return state.user;
+    if (!state.sb || !state.sb.auth) {
+      throw new Error("Сессия не найдена. Закройте и снова откройте приложение через Telegram.");
+    }
+    const sessionResult = await state.sb.auth.getSession();
+    const sessionUser = sessionResult && sessionResult.data && sessionResult.data.session &&
+      sessionResult.data.session.user;
+    if (sessionUser && sessionUser.id) {
+      state.user = sessionUser;
+      setBalance();
+      return state.user;
+    }
+    const userResult = await state.sb.auth.getUser();
+    if (userResult && userResult.error) throw userResult.error;
+    const restoredUser = userResult && userResult.data && userResult.data.user;
+    if (restoredUser && restoredUser.id) {
+      state.user = restoredUser;
+      setBalance();
+      return state.user;
+    }
+    throw new Error("Сессия Telegram истекла. Закройте и снова откройте мини-приложение через бота.");
+  }
+
   async function refreshAccount() {
+    const user = await requireUser();
     const [profileResult, walletResult, prefsResult, accessResult] = await Promise.all([
-      state.sb.from("market_profiles").select("id,handle,display_name,avatar_url,bio").eq("id", state.user.id).maybeSingle(),
-      state.sb.from("market_wallets").select("user_id,balance,reserved_balance,currency_code").eq("user_id", state.user.id).maybeSingle(),
-      state.sb.from("market_user_preferences").select("theme,language,display_currency,notifications_enabled,price_alerts_enabled").eq("user_id", state.user.id).maybeSingle(),
+      state.sb.from("market_profiles").select("id,handle,display_name,avatar_url,bio").eq("id", user.id).maybeSingle(),
+      state.sb.from("market_wallets").select("user_id,balance,reserved_balance,currency_code").eq("user_id", user.id).maybeSingle(),
+      state.sb.from("market_user_preferences").select("theme,language,display_currency,notifications_enabled,price_alerts_enabled").eq("user_id", user.id).maybeSingle(),
       api("get_access_status")
     ]);
     if (profileResult.error) throw profileResult.error;
@@ -201,7 +258,7 @@
     if (prefsResult.data) state.preferences = prefsResult.data;
     else {
       const insert = await state.sb.from("market_user_preferences").upsert({
-        user_id: state.user.id,
+        user_id: user.id,
         theme: "light",
         language: "ru"
       });
@@ -229,7 +286,7 @@
       throw new Error("Не заполнены настройки подключения Supabase в config.js");
     }
     if (!tg || !tg.initData) {
-      screen.innerHTML = empty("✈", "Откройте через Telegram", "Это приложение работает как Telegram Mini App. Откройте его кнопкой в вашем Telegram-боте.");
+      screen.innerHTML = empty("send", "Откройте через Telegram", "Это приложение работает как Telegram Mini App. Откройте его кнопкой в вашем Telegram-боте.");
       setHeader("Gift Market", "Telegram Mini App", false);
       bottomNav.hidden = true;
       return false;
@@ -277,7 +334,7 @@
     bottomNav.hidden = false;
     if (state.access && state.access.can_access === false) {
       setHeader("Доступ ограничен", "Свяжитесь с поддержкой", false);
-      screen.innerHTML = empty("⛔", "Аккаунт заблокирован", "Вход выполнен, но доступ к площадке ограничен. Причина: " +
+      screen.innerHTML = empty("ban", "Аккаунт заблокирован", "Вход выполнен, но доступ к площадке ограничен. Причина: " +
         ((state.access.restrictions || []).map((r) => r.reason).filter(Boolean).join("; ") || "не указана"));
       bottomNav.hidden = true;
       return true;
@@ -287,6 +344,7 @@
   }
 
   async function setTab(tab) {
+    await requireUser();
     state.tab = tab;
     state.view = tab;
     state.back = null;
@@ -306,7 +364,7 @@
     if (result.error) throw result.error;
     const collections = result.data || [];
     if (!collections.length) {
-      screen.innerHTML = empty("✧", "Пока нет коллекций", "Когда администратор создаст и опубликует коллекции, они появятся здесь. Подарки не добавляются автоматически.");
+      screen.innerHTML = empty("sparkles", "Пока нет коллекций", "Когда администратор создаст и опубликует коллекции, они появятся здесь. Подарки не добавляются автоматически.");
       return;
     }
     const items = await Promise.all(collections.map(async (collection) => {
@@ -317,10 +375,10 @@
     screen.innerHTML = '<div class="section-heading"><h2>Коллекции</h2><span class="section-note">' +
       items.length + " шт.</span></div><div class=\"collection-list\">" + items.map((item) =>
         '<button class="collection-card" type="button" data-action="open-collection" data-id="' + item.id + '">' +
-          '<div class="collection-cover">' + (item.cover_url ? '<img src="' + esc(item.cover_url) + '" alt="">' : "✧") + '</div>' +
+          '<div class="collection-cover">' + (item.cover_url ? '<img src="' + esc(item.cover_url) + '" alt="">' : svgIcon("sparkles")) + '</div>' +
           '<div class="collection-info"><div class="collection-name">' + esc(item.name) + '</div>' +
           '<div class="collection-desc">' + esc(item.description || "Коллекция цифровых подарков") + '</div>' +
-          '<div class="collection-count">' + item.assetCount + " моделей</div></div><span class=\"arrow\">›</span></button>"
+          '<div class="collection-count">' + item.assetCount + " моделей</div></div><span class=\"arrow\"></span></button>"
       ).join("") + "</div>";
   }
 
@@ -346,7 +404,7 @@
         (collection.cover_url ? '<img src="' + esc(collection.cover_url) + '" alt="">' : "✧") +
         '</div><div><div class="profile-name">' + esc(collection.name) + '</div><div class="profile-sub">' +
         esc(collection.description || "") + '</div></div></div></div>' +
-        empty("✧", "Пока нет подарков", "Администратор ещё не добавил модели в эту коллекцию.");
+        empty("sparkles", "Пока нет подарков", "Администратор ещё не добавил модели в эту коллекцию.");
       return;
     }
 
@@ -420,7 +478,7 @@
       const asset = item.asset;
       const isMine = item.owner_id === state.user.id;
       const label = item.listing
-        ? "★ " + fmt(item.listing.price)
+        ? svgIcon("star", "inline-icon") + " " + fmt(item.listing.price)
         : (isMine ? "Мой NFT" : "Нет предложения");
       return '<button class="gift-card" type="button" data-action="open-collectible" data-id="' + item.id + '">' +
         mediaHtml(asset) +
@@ -440,7 +498,7 @@
       makeOptions("Фон","background",unique("backgroundFilter")) +
       makeOptions("Узор","pattern",unique("patternFilter")) +
       '</div></div>' +
-      (cards ? '<div class="gift-grid">' + cards + '</div>' : empty("⌕","Ничего не найдено","Измените параметры фильтрации."));
+      (cards ? '<div class="gift-grid">' + cards + '</div>' : empty("search","Ничего не найдено","Измените параметры фильтрации."));
     const sortSelect = screen.querySelector('[data-filter="sort"]');
     if (sortSelect) sortSelect.value = filter.sort;
   }
@@ -557,7 +615,7 @@
       '</div><div id="price-chart" class="chart-empty">Загружаем историю…</div></div>' +
       '<div class="section-heading"><h2>Экземпляры</h2><span class="section-note">' + tokens.length + " шт.</span></div>" +
       controls + (rows ? '<div class="instance-list">' + rows + "</div>" :
-        empty("✧", "Экземпляров пока нет", "Администратор может выпустить экземпляры этой модели через панель управления."));
+        empty("sparkles", "Экземпляров пока нет", "Администратор может выпустить экземпляры этой модели через панель управления."));
     await loadChart(id, state.currentTimeframe);
   }
 
@@ -606,21 +664,26 @@
   }
 
   async function renderMyNft() {
+    const user = await requireUser();
     state.view = "my_nft";
     state.back = null;
     setHeader("Мои NFT", "Ваши коллекции", false);
     loading("Загружаем вашу коллекцию…");
     const ownedResult = await state.sb.from("market_collectibles")
-      .select("id,serial_number,asset_id,owner_id").eq("owner_id", state.user.id)
+      .select("id,serial_number,asset_id,owner_id").eq("owner_id", user.id)
       .order("created_at", { ascending: false });
     if (ownedResult.error) throw ownedResult.error;
     const owned = ownedResult.data || [];
     state.inventory = [];
     if (!owned.length) {
-      screen.innerHTML = empty("✧", "У вас пока нет NFT", "Купленные подарки будут автоматически группироваться здесь по коллекциям.");
+      screen.innerHTML = empty("sparkles", "Здесь пока пусто", "Ваши NFT появятся здесь после покупки или получения.");
       return;
     }
     const assetIds = [...new Set(owned.map((item) => item.asset_id))];
+    if (!assetIds.length) {
+      screen.innerHTML = empty("sparkles", "Здесь пока пусто", "Ваши NFT появятся здесь после покупки или получения.");
+      return;
+    }
     const assetsResult = await state.sb.from("market_assets")
       .select("id,name,image_url,model_url,rarity,collection_id").in("id", assetIds);
     if (assetsResult.error) throw assetsResult.error;
@@ -641,13 +704,17 @@
       const preview = items[0].asset;
       return '<button class="collection-card" type="button" data-action="open-inventory" data-id="' + collection.id + '">' +
         '<div class="collection-cover">' + (collection.cover_url ? '<img src="' + esc(collection.cover_url) + '" alt="">' :
-          (preview.image_url ? '<img src="' + esc(preview.image_url) + '" alt="">' : "✧")) + '</div>' +
+          (preview.image_url ? '<img src="' + esc(preview.image_url) + '" alt="">' : svgIcon("sparkles"))) + '</div>' +
         '<div class="collection-info"><div class="collection-name">' + esc(collection.name) + '</div>' +
         '<div class="collection-desc">Ваша коллекция</div><div class="collection-count">' + items.length +
-        " NFT</div></div><span class=\"arrow\">›</span></button>";
+        " NFT</div></div><span class=\"arrow\"></span></button>";
     }).join("");
+    if (!groups.some(Boolean)) {
+      screen.innerHTML = empty("sparkles", "Здесь пока пусто", "Ваши NFT появятся здесь после покупки или получения.");
+      return;
+    }
     screen.innerHTML = '<div class="section-heading"><h2>Коллекции</h2><span class="section-note">' +
-      collections.length + " коллекций</span></div><div class=\"collection-list\">" + groups + "</div>";
+      groups.filter(Boolean).length + " коллекций</span></div><div class=\"collection-list\">" + groups.join("") + "</div>";
   }
 
   function openInventory(collectionId) {
@@ -669,6 +736,11 @@
   }
 
   async function renderSettings() {
+    const user = await requireUser();
+    const appMetadata = user.app_metadata || {};
+    const userMetadata = user.user_metadata || {};
+    const telegramId = appMetadata.telegram_id || userMetadata.telegram_id ||
+      (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || "—";
     state.view = "settings";
     state.back = null;
     setHeader("Настройки", "Параметры аккаунта", false);
@@ -680,42 +752,43 @@
       '<div class="panel"><div class="profile-row"><div class="avatar">' + avatar + '</div><div><div class="profile-name">' +
       esc(profile.display_name || "Пользователь") + '</div><div class="profile-sub">' +
       (profile.handle ? "@" + esc(profile.handle) + " · " : "") + "Telegram ID: " +
-      esc((state.user.app_metadata && state.user.app_metadata.telegram_id) || "—") + "</div></div></div></div>" +
+      esc(telegramId) + "</div></div></div></div>" +
       '<div class="section-heading"><h2>Основные</h2></div><div class="settings-list">' +
-      '<div class="settings-item"><span class="settings-icon">◐</span><div class="settings-label">Тёмная тема' +
+      '<div class="settings-item"><span class="settings-icon">' + svgIcon("moon") + '</span><div class="settings-label">Тёмная тема' +
       '<span class="settings-desc">По умолчанию используется светлая тема</span></div><input class="toggle" type="checkbox" data-setting="theme" ' +
       (state.preferences.theme === "dark" ? "checked" : "") + '></div>' +
-      '<div class="settings-item"><span class="settings-icon">♧</span><div class="settings-label">Уведомления' +
+      '<div class="settings-item"><span class="settings-icon">' + svgIcon("bell") + '</span><div class="settings-label">Уведомления' +
       '<span class="settings-desc">Системные сообщения площадки</span></div><input class="toggle" type="checkbox" data-setting="notifications_enabled" ' +
       (state.preferences.notifications_enabled ? "checked" : "") + '></div>' +
-      '<div class="settings-item"><span class="settings-icon">⌁</span><div class="settings-label">Уведомления о цене' +
+      '<div class="settings-item"><span class="settings-icon">' + svgIcon("chart") + '</span><div class="settings-label">Уведомления о цене' +
       '<span class="settings-desc">Изменения заявок и торгов</span></div><input class="toggle" type="checkbox" data-setting="price_alerts_enabled" ' +
       (state.preferences.price_alerts_enabled ? "checked" : "") + '></div></div>' +
       '<div class="section-heading"><h2>Аккаунт</h2></div><div class="settings-list">' +
-      '<div class="settings-item"><span class="settings-icon">◉</span><div class="settings-label">Telegram ID' +
-      '<span class="settings-desc">' + esc((state.user.app_metadata && state.user.app_metadata.telegram_id) || "—") + "</span></div></div>" +
-      '<button class="settings-item" type="button" data-action="my-orders"><span class="settings-icon">↔</span><span class="settings-label">Мои заявки' +
-      '<span class="settings-desc">Открытые заявки на покупку и продажу</span></span><span class="arrow">›</span></button>' +
-      '<div class="settings-item"><span class="settings-icon">ⓘ</span><span class="settings-label">О приложении' +
+      '<div class="settings-item"><span class="settings-icon">' + svgIcon("user") + '</span><div class="settings-label">Telegram ID' +
+      '<span class="settings-desc">' + esc(telegramId) + "</span></div></div>" +
+      '<button class="settings-item" type="button" data-action="my-orders"><span class="settings-icon">' + svgIcon("arrows") + '</span><span class="settings-label">Мои заявки' +
+      '<span class="settings-desc">Открытые заявки на покупку и продажу</span></span><span class="arrow"></span></button>' +
+      '<div class="settings-item"><span class="settings-icon">' + svgIcon("info") + '</span><span class="settings-label">О приложении' +
       '<span class="settings-desc">Gift Market · Telegram Mini App</span></span></div></div>' +
       (state.isAdmin ? '<div class="section-heading"><h2>Администрирование</h2></div><div class="settings-list">' +
-        '<button class="settings-item" type="button" data-action="admin-open"><span class="settings-icon">⬡</span>' +
-        '<span class="settings-label">Панель администратора<span class="settings-desc">Управление площадкой и пользователями</span></span><span class="arrow">›</span></button></div>' : "");
+        '<button class="settings-item" type="button" data-action="admin-open"><span class="settings-icon">' + svgIcon("shield") + '</span>' +
+        '<span class="settings-label">Панель администратора<span class="settings-desc">Управление площадкой и пользователями</span></span><span class="arrow"></span></button></div>' : "");
   }
 
   async function renderMyOrders() {
+    const user = await requireUser();
     state.view = "my_orders";
     state.back = () => renderSettings();
     setHeader("Мои заявки", "Открытые ордера", true);
     loading("Загружаем заявки…");
     const result = await state.sb.from("market_orders")
       .select("id,collectible_id,side,scope,price,status,created_at,reserved_amount")
-      .eq("user_id", state.user.id).eq("status", "open")
+      .eq("user_id", user.id).eq("status", "open")
       .order("created_at", { ascending: false });
     if (result.error) throw result.error;
     const orders = result.data || [];
     if (!orders.length) {
-      screen.innerHTML = empty("↔", "Открытых заявок нет", "Когда вы создадите заявку на покупку или выставите NFT на продажу, она появится здесь.");
+      screen.innerHTML = empty("arrows", "Открытых заявок нет", "Когда вы создадите заявку на покупку или выставите NFT на продажу, она появится здесь.");
       return;
     }
     const items = await state.sb.from("market_collectibles").select("id,serial_number,asset_id").in("id", orders.map((o) => o.collectible_id));
@@ -742,20 +815,20 @@
     loading("Загружаем статистику…");
     const stats = await api("admin_overview");
     screen.innerHTML =
-      '<div class="admin-banner"><div><strong>Панель администратора</strong><small>Доступ подтверждён сервером</small></div><span>⬡</span></div>' +
+      '<div class="admin-banner"><div><strong>Панель администратора</strong><small>Доступ подтверждён сервером</small></div><span>' + svgIcon("shield") + '</span></div>' +
       '<div class="admin-grid">' +
-      '<div class="admin-tile"><div class="admin-tile-icon">♙</div><strong>' + fmt(stats.users) + '</strong><span>Пользователи</span></div>' +
-      '<div class="admin-tile"><div class="admin-tile-icon">↔</div><strong>' + fmt(stats.trades) + '</strong><span>Сделки</span></div>' +
-      '<div class="admin-tile"><div class="admin-tile-icon">✧</div><strong>' + fmt(stats.collections) + '</strong><span>Коллекции</span></div>' +
-      '<div class="admin-tile"><div class="admin-tile-icon">▣</div><strong>' + fmt(stats.collectibles) + '</strong><span>Экземпляры NFT</span></div>' +
-      '<div class="admin-tile"><div class="admin-tile-icon">◈</div><strong>' + fmt(stats.open_orders) + '</strong><span>Открытые заявки</span></div>' +
-      '<div class="admin-tile"><div class="admin-tile-icon">₽</div><strong>' + fmt(stats.fees) + '</strong><span>Комиссия площадки</span></div>' +
-      '<div class="admin-tile"><div class="admin-tile-icon">▤</div><strong>' + fmt(stats.trade_volume) + '</strong><span>Объём торгов</span></div></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">' + svgIcon("users") + '</div><strong>' + fmt(stats.users) + '</strong><span>Пользователи</span></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">' + svgIcon("arrows") + '</div><strong>' + fmt(stats.trades) + '</strong><span>Сделки</span></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">' + svgIcon("sparkles") + '</div><strong>' + fmt(stats.collections) + '</strong><span>Коллекции</span></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">' + svgIcon("box") + '</div><strong>' + fmt(stats.collectibles) + '</strong><span>Экземпляры NFT</span></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">' + svgIcon("layers") + '</div><strong>' + fmt(stats.open_orders) + '</strong><span>Открытые заявки</span></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">' + svgIcon("wallet") + '</div><strong>' + fmt(stats.fees) + '</strong><span>Комиссия площадки</span></div>' +
+      '<div class="admin-tile"><div class="admin-tile-icon">' + svgIcon("chart") + '</div><strong>' + fmt(stats.trade_volume) + '</strong><span>Объём торгов</span></div></div>' +
       '<div class="admin-menu">' +
-      '<button type="button" data-action="admin-users"><span>♙</span><span>Пользователи<small>Поиск, баланс, блокировки и история</small></span><b>›</b></button>' +
-      '<button type="button" data-action="admin-catalog"><span>✧</span><span>Коллекции и NFT<small>Создание коллекций и подарков вручную</small></span><b>›</b></button>' +
-      '<button type="button" data-action="admin-market"><span>▥</span><span>Рынок и торговля<small>Пауза торгов и комиссия</small></span><b>›</b></button>' +
-      '<button type="button" data-action="admin-audit"><span>≡</span><span>Журнал действий<small>Изменения и операции администраторов</small></span><b>›</b></button></div>';
+      '<button type="button" data-action="admin-users"><span>' + svgIcon("users") + '</span><span>Пользователи<small>Поиск, баланс, блокировки и история</small></span><b></b></button>' +
+      '<button type="button" data-action="admin-catalog"><span>' + svgIcon("sparkles") + '</span><span>Коллекции и NFT<small>Создание коллекций и подарков вручную</small></span><b></b></button>' +
+      '<button type="button" data-action="admin-market"><span>' + svgIcon("chart") + '</span><span>Рынок и торговля<small>Пауза торгов и комиссия</small></span><b></b></button>' +
+      '<button type="button" data-action="admin-audit"><span>' + svgIcon("list") + '</span><span>Журнал действий<small>Изменения и операции администраторов</small></span><b></b></button></div>';
   }
 
   async function renderAdminUsers() {
@@ -777,7 +850,7 @@
     box.innerHTML = '<div class="loading-state"><div class="loader"></div><span>Поиск…</span></div>';
     const users = await api("admin_users", { search: search });
     if (!users || !users.length) {
-      box.innerHTML = empty("⌕", "Ничего не найдено", "Проверьте Telegram ID, username или имя.");
+      box.innerHTML = empty("search", "Ничего не найдено", "Проверьте Telegram ID, username или имя.");
       return;
     }
     box.innerHTML = '<div class="panel"><div class="section-heading"><h2>Результаты</h2><span class="section-note">' +
@@ -791,7 +864,7 @@
           esc(user.display_name || "Пользователь") + '</div><div class="user-result-sub">' +
           (user.telegram_username ? "@" + esc(user.telegram_username) + " · " : "") +
           "TG: " + esc(user.telegram_id || "—") + "<br>Баланс: " + fmt(user.balance) +
-          " · NFT: " + fmt(user.nft_count) + "</div></div><span class=\"arrow\">›</span></button>";
+          " · NFT: " + fmt(user.nft_count) + "</div></div><span class=\"arrow\"></span></button>";
       }).join("") + "</div>";
   }
 
@@ -954,7 +1027,7 @@
       '<div class="stat-row"><span><strong>' + esc(row.action) + '</strong><small class="helper" style="display:block">' +
       esc(row.target_type || "—") + " · " + esc(row.target_id || "") + "</small><small class=\"helper\">" +
       new Date(row.created_at).toLocaleString("ru-RU") + "</small></span></div>").join("") + "</div>" :
-      empty("≡", "Журнал пока пуст", "Административные действия будут отображаться здесь.");
+      empty("list", "Журнал пока пуст", "Административные действия будут отображаться здесь.");
   }
 
   async function submitOrder(collectibleId, side, price, scope) {
@@ -980,6 +1053,7 @@
   }
 
   async function handleClick(button) {
+    await requireUser();
     const action = button.dataset.action;
     if (action === "open-collection") return openCollection(button.dataset.id);
     if (action === "open-asset") return openAsset(button.dataset.id);
@@ -1066,6 +1140,7 @@
   }
 
   async function handleSubmit(form) {
+    await requireUser();
     const data = new FormData(form);
     const value = (name) => String(data.get(name) || "").trim();
     const formType = form.dataset.form;
@@ -1241,6 +1316,7 @@
   backButton.addEventListener("click", goBack);
   document.getElementById("currency-toggle").addEventListener("click", async () => {
     try {
+      const user = await requireUser();
       const next = state.displayCurrency === "RUB" ? "USD" : "RUB";
       if (next === "USD" && (!state.fxRate || state.fxRate <= 0)) {
         const fx = await api("get_fx_rate");
@@ -1250,7 +1326,7 @@
         throw new Error("Курс доллара сейчас недоступен");
       }
       const result = await state.sb.from("market_user_preferences")
-        .update({ display_currency: next }).eq("user_id", state.user.id);
+        .update({ display_currency: next }).eq("user_id", user.id);
       if (result.error) throw result.error;
       state.displayCurrency = next;
       state.preferences.display_currency = next;
@@ -1280,11 +1356,12 @@
     const input = event.target.closest("[data-setting]");
     if (!input) return;
     try {
+      const user = await requireUser();
       const key = input.dataset.setting;
       const value = key === "theme" ? (input.checked ? "dark" : "light") : input.checked;
       const patch = {};
       patch[key] = value;
-      const result = await state.sb.from("market_user_preferences").update(patch).eq("user_id", state.user.id);
+      const result = await state.sb.from("market_user_preferences").update(patch).eq("user_id", user.id);
       if (result.error) throw result.error;
       state.preferences[key] = value;
       if (key === "theme") setTheme(value);
@@ -1302,7 +1379,7 @@
     console.error(error);
     setHeader("Не удалось войти", "Проверьте подключение", false);
     bottomNav.hidden = true;
-    screen.innerHTML = empty("⚠", "Ошибка запуска", getErrorMessage(error) +
+    screen.innerHTML = empty("alert", "Ошибка запуска", getErrorMessage(error) +
       ". Убедитесь, что Telegram-бот настроен и секрет TELEGRAM_BOT_TOKEN добавлен в Supabase.");
   });
 })();
