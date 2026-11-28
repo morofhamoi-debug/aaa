@@ -341,7 +341,14 @@ function activityPage() {
 function profilePage() {
   if (!state.user) return authRequiredPage();
   const profile = state.profile || {};
-  return `<section class="page-heading"><div><span class="eyebrow">VEXA / ACCOUNT</span><h1>Профиль</h1><p>Управление аккаунтом и публичной информацией.</p></div></section>
+  const quickLinks = [
+    { id: 'orders', icon: 'orders', label: 'Мои заявки' },
+    { id: 'trades', icon: 'trades', label: 'История сделок' },
+    { id: 'notifications', icon: 'notifications', label: 'Уведомления' },
+    ...(state.admin ? [{ id: 'admin', icon: 'inventory', label: 'Администрирование' }] : [])
+  ];
+  return `<section class="page-heading"><div><span class="eyebrow">VEXA / ACCOUNT</span><h1>Профиль</h1><p>Настройки аккаунта и личные разделы.</p></div></section>
+    <section class="profile-quick-links" aria-label="Личные разделы">${quickLinks.map((item) => `<button class="profile-quick-link" data-action="navigate" data-page="${item.id}"><span>${svgIcon(item.icon,19)}</span><strong>${item.label}</strong>${svgIcon('arrow',15)}</button>`).join('')}</section>
     <section class="profile-layout"><div class="profile-card"><div class="profile-avatar">${esc(initials(profile.display_name || profile.handle))}</div><div><h2>${esc(profile.display_name || 'Участник')}</h2><p>@${esc(profile.handle || '')}</p><small>ID: ${esc(state.user.id)}</small></div><div class="profile-separator"></div><div class="profile-stat"><span>Дата регистрации</span><strong>${formatDate(state.user.created_at)}</strong></div><div class="profile-stat"><span>Баланс</span><strong>${formatBalance(getBalance(), state.currency, rateValue())} ${moneyLabel()}</strong></div><div class="profile-stat"><span>Экземпляры NFT</span><strong>${state.portfolio.length}</strong></div><button class="button button-outline full-width" data-action="logout">Выйти из аккаунта</button></div>
       <div class="profile-settings"><div class="panel-card"><h3>Публичный профиль</h3><form id="profile-form" class="form-stack"><label>Отображаемое имя<input name="display_name" maxlength="60" value="${esc(profile.display_name || '')}" required></label><label>О себе<textarea name="bio" maxlength="300" rows="3">${esc(profile.bio || '')}</textarea></label><button class="button button-dark" type="submit">Сохранить профиль</button></form></div><div class="panel-card"><h3>Безопасность</h3><p>Для смены пароля используйте ссылку восстановления, отправленную на подтверждённую почту.</p><button class="button button-outline" data-action="reset-password">Отправить ссылку смены пароля</button></div></div>
     </section>`;
