@@ -401,7 +401,7 @@
     const assets = assetsResult.data || [];
     if (!assets.length) {
       screen.innerHTML = '<div class="panel"><div class="profile-row"><div class="collection-cover">' +
-        (collection.cover_url ? '<img src="' + esc(collection.cover_url) + '" alt="">' : "✧") +
+        (collection.cover_url ? '<img src="' + esc(collection.cover_url) + '" alt="">' : svgIcon("sparkles")) +
         '</div><div><div class="profile-name">' + esc(collection.name) + '</div><div class="profile-sub">' +
         esc(collection.description || "") + '</div></div></div></div>' +
         empty("sparkles", "Пока нет подарков", "Администратор ещё не добавил модели в эту коллекцию.");
@@ -689,8 +689,9 @@
     if (assetsResult.error) throw assetsResult.error;
     const assets = assetsResult.data || [];
     const collectionIds = [...new Set(assets.map((item) => item.collection_id))];
-    const collectionsResult = await state.sb.from("market_collections")
-      .select("id,name,cover_url,slug").in("id", collectionIds);
+    const collectionsResult = collectionIds.length
+      ? await state.sb.from("market_collections").select("id,name,cover_url,slug").in("id", collectionIds)
+      : { data: [], error: null };
     if (collectionsResult.error) throw collectionsResult.error;
     const collections = collectionsResult.data || [];
     state.inventory = owned.map((item) => {
