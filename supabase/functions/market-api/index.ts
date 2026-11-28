@@ -126,6 +126,8 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         !isUuid(body.collectible_id) ||
         !isUuid(body.idempotency_key) ||
         !["buy", "sell"].includes(body.side) ||
+        !["collectible", "asset"].includes(body.scope || "collectible") ||
+        (body.side === "sell" && body.scope === "asset") ||
         !Number.isSafeInteger(price) || price <= 0 || price > 9000000000000000
       ) {
         return response({ error: "Invalid order parameters" }, 400);
@@ -145,12 +147,13 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       if (marketStatus?.trading_enabled !== true) {
         return response({ error: "Trading is paused" }, 409);
       }
-      const { data, error } = await ctx.supabaseAdmin.rpc("market_submit_order", {
+      const { data, error } = await ctx.supabaseAdmin.rpc("market_submit_order_v2", {
         p_actor_id: actorId,
         p_collectible_id: body.collectible_id,
         p_side: body.side,
         p_price: price,
         p_idempotency_key: body.idempotency_key,
+        p_scope: body.scope || "collectible",
       });
       if (error) throw error;
       result = data;
