@@ -10,6 +10,7 @@ import {
 } from './api.js';
 import { mountGiftViewer } from './viewer.js';
 import { drawCandles } from './chart.js';
+import { VEXA } from './config.js';
 import { formatBalance, formatPrice, formatDate, formatRelative, slugify, isValidHandle, safeText, rarityClass } from './utils.js';
 
 const app = document.querySelector('#app');
