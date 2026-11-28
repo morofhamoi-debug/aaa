@@ -1,0 +1,7 @@
+project_id = "jdcypiuvykyfqfyllsji"
+
+[functions.telegram-auth]
+verify_jwt = false
+
+[functions.market-api]
+verify_jwt = false
